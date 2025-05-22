@@ -1,1 +1,69 @@
-# Sacco_contracts
+There are two main contracts:
+
+BlockCoopTokens: A token management system for a cooperative
+MyLoanManager: A lending system that leverages the tokens deposited in the cooperative
+
+Key Flow
+
+1. Token Deposit System
+
+Users can deposit whitelisted ERC20 tokens into the BlockCoopTokens contract
+These tokens serve as a pool of liquidity for the cooperative
+Tokens are whitelisted by fund managers or the owner
+Each token has an associated price feed
+
+2. Loan Request Process
+
+A user who has deposited tokens can request a loan through MyLoanManager
+They specify:
+
+Which token they want to borrow
+How much they want to borrow
+Which of their deposited tokens to use as collateral
+The loan duration
+
+3. Loan Approval Process
+
+A fund manager reviews the loan request
+The system calculates the collateral value and loan value in USD
+Verifies the loan-to-value ratio is below the maximum threshold (70%)
+Checks that the borrower has sufficient collateral in the BlockCoopTokens contract
+Calculates an interest rate based on risk factors
+
+4. Loan Issuance
+
+When approved, collateral tokens are transferred from BlockCoopTokens to MyLoanManager
+The requested loan tokens are transferred to the borrower
+A loan record is created with all details
+
+5. Loan Repayment
+
+The borrower can repay their loan (principal + interest) in parts or all at once
+When the loan is fully repaid, their collateral is returned
+
+Key Features
+
+Risk Management:
+
+Required collateral ratio of 150%
+Maximum LTV ratio of 70%
+Interest rates adjusted based on risk factors
+
+Multi-token Support:
+
+Users can deposit various ERC20 tokens
+External price feeds determine token values
+Support for different tokens as collateral and loan currency
+
+Governance Features:
+
+Owner and fund manager roles for administration
+Whitelisting of tokens
+Contract can be paused in emergencies
+
+User Portfolio Management:
+
+Users can see their deposited tokens and total value
+Users can access their loan history
+
+BlockCoopTokens --- 0x29975ac32ec83ba90f6be269fce191b79a90c4a6
