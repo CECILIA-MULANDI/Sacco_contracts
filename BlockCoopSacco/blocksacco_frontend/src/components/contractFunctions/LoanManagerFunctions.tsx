@@ -473,7 +473,7 @@ export function useGetUserLoanIds(userAddress: string | undefined) {
     ],
     queryOptions: {
       enabled: !!userAddress,
-      retry: false, // Don't retry on revert
+      retry: 0, // Don't retry on revert
     },
   });
 
@@ -486,7 +486,7 @@ export function useGetUserLoanIds(userAddress: string | undefined) {
     ],
     queryOptions: {
       enabled: !!userAddress && loan0.data !== undefined && !loan0.error,
-      retry: false,
+      retry: 0,
     },
   });
 
@@ -499,7 +499,7 @@ export function useGetUserLoanIds(userAddress: string | undefined) {
     ],
     queryOptions: {
       enabled: !!userAddress && loan1.data !== undefined && !loan1.error,
-      retry: false,
+      retry: 0,
     },
   });
 
