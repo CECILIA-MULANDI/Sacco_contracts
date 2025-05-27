@@ -73,18 +73,32 @@ function LoanCard({
 
   if (isPending) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        Loading loan #{loanId.toString()}...
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-3 bg-gray-200 rounded"></div>
+            <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+          </div>
+        </div>
+        <p className="text-gray-500 text-sm mt-2">
+          Loading loan #{loanId.toString()}...
+        </p>
       </div>
     );
   }
 
   if (error || !loanData) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="text-red-600">
-          Error loading loan #{loanId.toString()}:{" "}
-          {error?.message || "Unknown error"}
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="text-red-600 text-sm sm:text-base">
+          <div className="flex items-center space-x-2">
+            <span className="text-red-500">⚠️</span>
+            <span>Error loading loan #{loanId.toString()}</span>
+          </div>
+          <p className="text-xs text-red-500 mt-1">
+            {error?.message || "Unknown error"}
+          </p>
         </div>
       </div>
     );
@@ -114,51 +128,61 @@ function LoanCard({
   const repayAmount = repayAmounts[loanIdStr] || "";
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-xl font-semibold text-gray-800">
-          🏦 Loan #{loanIdStr}
-          <span
-            className={`ml-2 px-3 py-1 rounded-full text-sm font-medium ${
-              isActive
-                ? "bg-green-100 text-green-800"
-                : "bg-gray-100 text-gray-800"
-            }`}
-          >
-            {isActive ? "Active" : "Completed"}
-          </span>
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 sm:p-6 w-full max-w-full overflow-hidden">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 space-y-2 sm:space-y-0">
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center min-w-0">
+          <span className="mr-2 flex-shrink-0">🏦</span>
+          <span className="break-all min-w-0">Loan #{loanIdStr}</span>
         </h3>
+        <span
+          className={`self-start px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0 ${
+            isActive
+              ? "bg-green-100 text-green-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {isActive ? "Active" : "Completed"}
+        </span>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-sm text-gray-600">Loan Amount</p>
-          <p className="text-lg font-semibold">
-            {loanAmountFormatted} {tokenSymbol}
+      {/* Stats Grid - Fully Responsive */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 w-full">
+        <div className="bg-gray-50 rounded-lg p-3 min-w-0">
+          <p className="text-xs sm:text-sm text-gray-600">Loan Amount</p>
+          <p className="text-sm sm:text-lg font-semibold break-all min-w-0">
+            {loanAmountFormatted}{" "}
+            <span className="text-xs sm:text-base">{tokenSymbol}</span>
           </p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-sm text-gray-600">Total Repaid</p>
-          <p className="text-lg font-semibold text-green-600">
-            {totalRepaidFormatted} {tokenSymbol}
+        <div className="bg-gray-50 rounded-lg p-3 min-w-0">
+          <p className="text-xs sm:text-sm text-gray-600">Total Repaid</p>
+          <p className="text-sm sm:text-lg font-semibold text-green-600 break-all min-w-0">
+            {totalRepaidFormatted}{" "}
+            <span className="text-xs sm:text-base">{tokenSymbol}</span>
           </p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-sm text-gray-600">Remaining</p>
-          <p className="text-lg font-semibold text-red-600">
-            {remainingDebt.toFixed(4)} {tokenSymbol}
+        <div className="bg-gray-50 rounded-lg p-3 min-w-0">
+          <p className="text-xs sm:text-sm text-gray-600">Remaining</p>
+          <p className="text-sm sm:text-lg font-semibold text-red-600 break-all min-w-0">
+            {remainingDebt.toFixed(4)}{" "}
+            <span className="text-xs sm:text-base">{tokenSymbol}</span>
           </p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-sm text-gray-600">Interest Rate</p>
-          <p className="text-lg font-semibold">{interestRateFormatted}%</p>
+        <div className="bg-gray-50 rounded-lg p-3 min-w-0">
+          <p className="text-xs sm:text-sm text-gray-600">Interest Rate</p>
+          <p className="text-sm sm:text-lg font-semibold">
+            {interestRateFormatted}%
+          </p>
         </div>
       </div>
 
+      {/* Repayment Section - Mobile Optimized */}
       {isActive && remainingDebt > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="text-lg font-semibold text-blue-800 mb-3">
-            💰 Repay Loan
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 w-full max-w-full overflow-hidden">
+          <h4 className="text-base sm:text-lg font-semibold text-blue-800 mb-3 flex items-center">
+            <span className="mr-2">💰</span>
+            Repay Loan
           </h4>
 
           {/* Check if approval is needed */}
@@ -173,8 +197,9 @@ function LoanCard({
               repayAmountWei > currentAllowance;
 
             return (
-              <div className="space-y-3">
-                <div className="flex gap-3">
+              <div className="space-y-3 w-full">
+                {/* Input and Button - Responsive Layout */}
+                <div className="flex flex-col sm:flex-row gap-3 w-full">
                   <input
                     type="number"
                     placeholder="Amount to repay"
@@ -185,7 +210,7 @@ function LoanCard({
                         [loanIdStr]: e.target.value,
                       }))
                     }
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                     step="0.01"
                     min="0"
                     max={remainingDebt.toString()}
@@ -214,7 +239,7 @@ function LoanCard({
                         parseFloat(repayAmount) > remainingDebt ||
                         approvePending
                       }
-                      className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                      className="w-full sm:w-auto flex-shrink-0 px-4 sm:px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium"
                     >
                       {approvePending ? "Approving..." : "Approve"}
                     </button>
@@ -238,29 +263,35 @@ function LoanCard({
                         parseFloat(repayAmount) > remainingDebt ||
                         repayPending
                       }
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                      className="w-full sm:w-auto flex-shrink-0 px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium"
                     >
                       {repayPending ? "Processing..." : "Repay"}
                     </button>
                   )}
                 </div>
 
-                {/* Show allowance info */}
-                <div className="text-xs text-gray-600">
-                  <p>
-                    Maximum: {remainingDebt.toFixed(4)} {tokenSymbol}
+                {/* Info Section - Mobile Optimized */}
+                <div className="text-xs sm:text-sm text-gray-600 space-y-1 w-full max-w-full overflow-hidden">
+                  <p className="break-all">
+                    <span className="font-medium">Maximum:</span>{" "}
+                    {remainingDebt.toFixed(4)} {tokenSymbol}
                   </p>
                   {Boolean(allowance && allowance > 0n) && (
-                    <p>
-                      Current Allowance: {formatTokenAmount(allowance)}{" "}
-                      {tokenSymbol}
+                    <p className="break-all">
+                      <span className="font-medium">Current Allowance:</span>{" "}
+                      {formatTokenAmount(allowance)} {tokenSymbol}
                     </p>
                   )}
                   {needsApproval && (
-                    <p className="text-yellow-600 font-medium">
-                      ⚠️ You need to approve the contract to spend your tokens
-                      first
-                    </p>
+                    <div className="bg-yellow-100 border border-yellow-300 rounded p-2 mt-2 w-full max-w-full overflow-hidden">
+                      <p className="text-yellow-700 font-medium text-xs sm:text-sm flex items-start">
+                        <span className="mr-1 mt-0.5 flex-shrink-0">⚠️</span>
+                        <span className="break-words">
+                          You need to approve the contract to spend your tokens
+                          first
+                        </span>
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -268,27 +299,6 @@ function LoanCard({
           })()}
         </div>
       )}
-
-      {/* <details className="mt-4">
-        <summary className="cursor-pointer text-gray-500 text-sm">
-          Show loan details
-        </summary>
-        <div className="mt-2 p-3 bg-gray-100 rounded text-xs">
-          <p>
-            <strong>Borrower:</strong> {borrower}
-          </p>
-          <p>
-            <strong>Loan Token:</strong> {loanToken}
-          </p>
-          <p>
-            <strong>Start Time:</strong>{" "}
-            {new Date(Number(startTime) * 1000).toLocaleString()}
-          </p>
-          <p>
-            <strong>Duration:</strong> {Number(duration) / 86400} days
-          </p>
-        </div>
-      </details> */}
     </div>
   );
 }
@@ -366,8 +376,12 @@ export default function UserActiveLoans() {
 
   if (!account) {
     return (
-      <div className="text-center p-6 bg-yellow-100 rounded-lg">
-        <p className="text-yellow-800">
+      <div className="text-center p-4 sm:p-6 bg-yellow-100 rounded-lg mx-4 sm:mx-0">
+        <div className="text-4xl sm:text-6xl mb-2 sm:mb-4">🔗</div>
+        <h3 className="text-lg sm:text-xl font-semibold text-yellow-800 mb-2">
+          Wallet Not Connected
+        </h3>
+        <p className="text-yellow-700 text-sm sm:text-base">
           Please connect your wallet to view your loans
         </p>
       </div>
@@ -376,35 +390,38 @@ export default function UserActiveLoans() {
 
   if (isLoading) {
     return (
-      <div className="text-center p-8">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p className="mt-2 text-gray-600">Loading your loans...</p>
+      <div className="text-center p-6 sm:p-8">
+        <div className="inline-block animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600"></div>
+        <p className="mt-2 text-gray-600 text-sm sm:text-base">
+          Loading your loans...
+        </p>
       </div>
     );
   }
 
   if (error) {
-    // console.log("Error details:", error);
     return (
-      <div className="text-center p-8 bg-red-100 rounded-lg">
-        <div className="text-6xl mb-4">⚠️</div>
-        <h3 className="text-xl font-semibold text-red-700 mb-2">
+      <div className="text-center p-4 sm:p-8 bg-red-100 rounded-lg mx-4 sm:mx-0">
+        <div className="text-4xl sm:text-6xl mb-2 sm:mb-4">⚠️</div>
+        <h3 className="text-lg sm:text-xl font-semibold text-red-700 mb-2">
           Error Loading Loans
         </h3>
-        <p className="text-red-600 mb-4">{error.message || error.toString()}</p>
+        <p className="text-red-600 mb-4 text-sm sm:text-base break-words">
+          {error.message || error.toString()}
+        </p>
         <details className="text-left">
-          <summary className="cursor-pointer text-red-700 font-medium">
+          <summary className="cursor-pointer text-red-700 font-medium text-sm sm:text-base">
             Debug Info
           </summary>
-          <div className="mt-2 p-3 bg-red-50 rounded text-sm">
-            <p>
+          <div className="mt-2 p-3 bg-red-50 rounded text-xs sm:text-sm overflow-auto">
+            <p className="break-all">
               <strong>Account:</strong> {account?.address || "Not connected"}
             </p>
             <p>
               <strong>Error type:</strong>{" "}
               {error.constructor?.name || "Unknown"}
             </p>
-            <p>
+            <p className="break-all">
               <strong>Full error:</strong> {JSON.stringify(error, null, 2)}
             </p>
           </div>
@@ -415,12 +432,12 @@ export default function UserActiveLoans() {
 
   if (!loanIds || loanIds.length === 0) {
     return (
-      <div className="text-center p-8 bg-gray-50 rounded-lg">
-        <div className="text-6xl mb-4">🏦</div>
-        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+      <div className="text-center p-6 sm:p-8 bg-gray-50 rounded-lg mx-4 sm:mx-0">
+        <div className="text-4xl sm:text-6xl mb-2 sm:mb-4">🏦</div>
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">
           No Active Loans
         </h3>
-        <p className="text-gray-600">
+        <p className="text-gray-600 text-sm sm:text-base">
           You don't have any active loans at the moment.
         </p>
       </div>
@@ -428,15 +445,8 @@ export default function UserActiveLoans() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* <div className="bg-white rounded-lg shadow-md p-6"> */}
-      {/* <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          💼 Your Active Loans
-        </h2> */}
-      {/* <p className="text-gray-600">Found {loanIds.length} loan(s)</p> */}
-      {/* </div> */}
-
-      <div className="space-y-4">
+    <div className="w-full max-w-full overflow-x-hidden">
+      <div className="space-y-3 sm:space-y-4 w-full">
         {loanIds.map((loanId) => (
           <LoanCard
             key={loanId.toString()}

@@ -63,7 +63,7 @@ const menuItems = [
 
 export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState("deposit");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoansOpen, setIsLoansOpen] = useState(false);
   const account = useActiveAccount();
 
@@ -74,8 +74,8 @@ export default function UserDashboard() {
   // If no account is connected, show a connect wallet message
   if (!account) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center p-6 bg-white rounded-lg shadow-lg">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="text-center p-6 bg-white rounded-lg shadow-lg max-w-md w-full">
           <h2 className="text-2xl font-bold mb-4 text-gray-800">
             Connect Your Wallet
           </h2>
@@ -88,32 +88,45 @@ export default function UserDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-gray-100 flex relative overflow-x-hidden">
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full bg-gray-900 shadow-lg transition-all duration-300 ease-in-out z-10
-          ${isSidebarOpen ? "w-64" : "w-20"}`}
+        className={`fixed top-0 left-0 h-screen bg-gray-900 shadow-lg transition-all duration-300 ease-in-out z-30
+          lg:relative lg:translate-x-0
+          ${
+            isSidebarOpen
+              ? "translate-x-0 w-64"
+              : "-translate-x-full w-64 lg:translate-x-0 lg:w-20"
+          }`}
       >
         {/* Toggle Button */}
         <button
           onClick={toggleSidebar}
-          className="absolute -right-4 top-9 bg-gray-900 hover:bg-gray-800 text-white rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 group cursor-pointer"
-          title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+          className="absolute -right-3 top-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-white z-40"
+          title={isSidebarOpen ? "Close Menu" : "Open Menu"}
         >
-          <div className="w-6 h-6 flex items-center justify-center">
+          <div className="w-5 h-5 flex items-center justify-center">
             {isSidebarOpen ? (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                className="w-5 h-5"
+                className="w-4 h-4"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                  d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
             ) : (
@@ -122,13 +135,13 @@ export default function UserDashboard() {
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                className="w-5 h-5"
+                className="w-4 h-4"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                  d="M4 6h16M4 12h16M4 18h16"
                 />
               </svg>
             )}
@@ -142,13 +155,11 @@ export default function UserDashboard() {
           }`}
         >
           <span className="text-2xl">🏦</span>
-          <span
-            className={`ml-3 font-bold text-xl text-white transition-opacity duration-300 ${
-              isSidebarOpen ? "opacity-100" : "opacity-0 hidden"
-            }`}
-          >
-            BlockSacco
-          </span>
+          {isSidebarOpen && (
+            <span className="ml-3 font-bold text-xl text-white">
+              BlockSacco
+            </span>
+          )}
         </div>
 
         {/* Navigation Items */}
@@ -162,6 +173,10 @@ export default function UserDashboard() {
                   } else {
                     setActiveTab(item.id);
                     setIsLoansOpen(false);
+                    // Close sidebar on mobile after selection
+                    if (window.innerWidth < 1024) {
+                      setIsSidebarOpen(false);
+                    }
                   }
                 }}
                 className={`w-full flex items-center p-4 transition-all duration-200 relative group
@@ -171,30 +186,30 @@ export default function UserDashboard() {
                       : "text-gray-300 hover:bg-gray-800 hover:text-white"
                   }`}
               >
-                <span className="text-2xl">{item.icon}</span>
-                <span
-                  className={`ml-4 font-medium transition-opacity duration-300 flex-1 ${
-                    isSidebarOpen ? "opacity-100" : "opacity-0 w-0 hidden"
-                  }`}
-                >
-                  {item.label}
-                </span>
-                {item.subItems && isSidebarOpen && (
-                  <svg
-                    className={`w-5 h-5 transition-transform duration-200 ${
-                      isLoansOpen ? "transform rotate-180" : ""
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
+                <span className="text-2xl flex-shrink-0">{item.icon}</span>
+                {isSidebarOpen && (
+                  <>
+                    <span className="ml-4 font-medium flex-1">
+                      {item.label}
+                    </span>
+                    {item.subItems && (
+                      <svg
+                        className={`w-5 h-5 transition-transform duration-200 flex-shrink-0 ${
+                          isLoansOpen ? "transform rotate-180" : ""
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    )}
+                  </>
                 )}
                 {!isSidebarOpen && (
                   <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
@@ -213,7 +228,13 @@ export default function UserDashboard() {
                   {item.subItems.map((subItem) => (
                     <button
                       key={subItem.id}
-                      onClick={() => setActiveTab(`loans_${subItem.id}`)}
+                      onClick={() => {
+                        setActiveTab(`loans_${subItem.id}`);
+                        // Close sidebar on mobile after selection
+                        if (window.innerWidth < 1024) {
+                          setIsSidebarOpen(false);
+                        }
+                      }}
                       className={`w-full flex items-center p-3 transition-all duration-200
                         ${
                           activeTab === `loans_${subItem.id}`
@@ -235,21 +256,21 @@ export default function UserDashboard() {
 
         {/* User Section */}
         <div
-          className={`absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800 bg-gray-900
-          ${isSidebarOpen ? "text-left" : "text-center"}`}
+          className={`absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800 bg-gray-900 ${
+            isSidebarOpen ? "text-left" : "text-center"
+          }`}
         >
           <div className="flex items-center group relative">
             <span className="text-2xl">👤</span>
-            <div
-              className={`ml-3 transition-opacity duration-300 ${
-                isSidebarOpen ? "opacity-100" : "opacity-0 w-0 hidden"
-              }`}
-            >
-              <p className="text-sm font-medium text-gray-300">Connected</p>
-              <p className="text-xs text-gray-400 truncate">
-                {account?.address?.slice(0, 6)}...{account?.address?.slice(-4)}
-              </p>
-            </div>
+            {isSidebarOpen && (
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-300">Connected</p>
+                <p className="text-xs text-gray-400 truncate">
+                  {account?.address?.slice(0, 6)}...
+                  {account?.address?.slice(-4)}
+                </p>
+              </div>
+            )}
             {!isSidebarOpen && (
               <div className="absolute left-full bottom-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap">
                 {account?.address?.slice(0, 6)}...{account?.address?.slice(-4)}
@@ -260,85 +281,77 @@ export default function UserDashboard() {
       </div>
 
       {/* Main Content */}
-      <div
-        className={`flex-1 transition-all duration-300 ${
-          isSidebarOpen ? "ml-64" : "ml-20"
-        }`}
-      >
-        <div className="p-8">
+      <div className="flex-1 w-full min-w-0 lg:ml-20">
+        {/* Mobile Header */}
+        <div className="lg:hidden bg-white shadow-sm p-4 flex items-center justify-between">
+          <button
+            onClick={toggleSidebar}
+            className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+          <h1 className="text-lg font-semibold text-gray-800">BlockSacco</h1>
+          <div className="w-10"></div> {/* Spacer for centering */}
+        </div>
+
+        <div className="p-4 sm:p-6 lg:p-8 max-w-full overflow-x-hidden">
           {/* Content Header */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <span>
-                {menuItems.find((item) => item.id === activeTab)?.icon}
+          <div className="mb-6">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 flex items-center gap-2 sm:gap-3 break-words">
+              <span className="text-xl sm:text-2xl">
+                {(() => {
+                  const mainItem = menuItems.find(
+                    (item) => item.id === activeTab
+                  );
+                  if (mainItem) return mainItem.icon;
+
+                  const parentItem = menuItems.find((item) =>
+                    activeTab.startsWith(item.id)
+                  );
+                  return parentItem?.icon;
+                })()}
               </span>
-              <span>
-                {menuItems.find((item) => item.id === activeTab)?.label}
+              <span className="break-words">
+                {(() => {
+                  const mainItem = menuItems.find(
+                    (item) => item.id === activeTab
+                  );
+                  if (mainItem) return mainItem.label;
+
+                  const parentItem = menuItems.find((item) =>
+                    activeTab.startsWith(item.id)
+                  );
+                  if (parentItem?.subItems) {
+                    const subItem = parentItem.subItems.find(
+                      (sub) => activeTab === `${parentItem.id}_${sub.id}`
+                    );
+                    return subItem?.label;
+                  }
+                })()}
               </span>
             </h2>
-            <p className="text-gray-600 mt-2">
-              {menuItems.find((item) => item.id === activeTab)?.description}
-            </p>
           </div>
 
-          {/* Tab Content */}
-          <div className="transition-all duration-300 ease-in-out">
-            {activeTab === "deposit" && (
-              <div className="animate-fadeIn">
-                <DepositForm />
-              </div>
-            )}
-
-            {activeTab === "withdraw" && (
-              <div className="animate-fadeIn">
-                <WithdrawForm />
-              </div>
-            )}
-
-            {activeTab === "addLiquidity" && (
-              <div className="animate-fadeIn">
-                <AddLiquidityForm />
-              </div>
-            )}
-
-            {activeTab === "userInfo" && (
-              <div className="animate-fadeIn">
-                <UserInfo />
-              </div>
-            )}
-
-            {/* Active Loans Section */}
-            {activeTab === "loans_activeLoan" && (
-              <div className="animate-fadeIn">
-                <h3 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center gap-2">
-                  <span className="text-3xl">💼</span> Your Active Loans
-                </h3>
-                <UserActiveLoans />
-              </div>
-            )}
-
-            {/* Request New Loan Section */}
-            {activeTab === "loans_requestLoan" && (
-              <div className="animate-fadeIn">
-                <h3 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center gap-2">
-                  <span className="text-3xl">📝</span> Request a New Loan
-                </h3>
-                <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-                  <RequestLoanForm />
-                </div>
-              </div>
-            )}
-
-            {/* Loan Requests History */}
-            {activeTab === "loans_loanHistory" && (
-              <div className="animate-fadeIn">
-                <h3 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center gap-2">
-                  <span className="text-3xl">📋</span> Your Loan Request History
-                </h3>
-                <UserLoanRequestsDisplay />
-              </div>
-            )}
-          </div>
+          {/* Content */}
+          {activeTab === "deposit" && <DepositForm />}
+          {activeTab === "withdraw" && <WithdrawForm />}
+          {activeTab === "addLiquidity" && <AddLiquidityForm />}
+          {activeTab === "loans_activeLoan" && <UserActiveLoans />}
+          {activeTab === "loans_requestLoan" && <RequestLoanForm />}
+          {activeTab === "loans_loanHistory" && <UserLoanRequestsDisplay />}
+          {activeTab === "userInfo" && <UserInfo />}
         </div>
       </div>
     </div>
