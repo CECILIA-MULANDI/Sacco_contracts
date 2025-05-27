@@ -10,27 +10,28 @@ function createEventHook(eventSignature: `event ${string}`) {
   });
 
   return function (txHash?: string) {
-    const [lastBlock, setLastBlock] = useState<bigint>(0n);
     const [pollingCount, setPollingCount] = useState(0);
 
     const {
       data: events,
       isLoading,
       error,
-      refetch
+      refetch,
     } = useContractEvents({
       contract,
       events: [preparedEvent],
-      fromBlock: lastBlock, // Start from last known block
     });
 
     // If we have a transaction hash, poll for new events
     useEffect(() => {
-      if (txHash && pollingCount < 5) { // Try up to 5 times
+      if (txHash && pollingCount < 5) {
+        // Try up to 5 times
         const pollTimer = setTimeout(() => {
-          console.log(`Polling for events after tx ${txHash}, attempt ${pollingCount + 1}`);
+          console.log(
+            `Polling for events after tx ${txHash}, attempt ${pollingCount + 1}`
+          );
           refetch();
-          setPollingCount(prev => prev + 1);
+          setPollingCount((prev) => prev + 1);
         }, 2000); // Poll every 2 seconds
 
         return () => clearTimeout(pollTimer);
@@ -48,7 +49,7 @@ function createEventHook(eventSignature: `event ${string}`) {
       error,
       contract: contract?.address,
       txHash,
-      pollingCount
+      pollingCount,
     });
 
     return { events, isLoading, error, refetch };

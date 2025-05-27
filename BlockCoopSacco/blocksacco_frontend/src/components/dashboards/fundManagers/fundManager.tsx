@@ -6,7 +6,15 @@ import LoanManagement from "../../forms/LoanManagement";
 import AddLiquidityForm from "../../forms/addLiquidityForm";
 import ApprovedLoans from "../../forms/ApprovedLoans";
 
-const menuItems = [
+interface MenuItem {
+  label: string;
+  isDropdown: boolean;
+  icon: React.ReactElement;
+  value?: string;
+  items?: { label: string; value: string }[];
+}
+
+const menuItems: MenuItem[] = [
   {
     label: "Loan Module",
     isDropdown: true,
@@ -139,7 +147,7 @@ export default function FundManagerDashboard() {
                           />
                         </svg>
                       </button>
-                      {openDropdowns[item.label] && (
+                      {openDropdowns[item.label] && item.items && (
                         <div className="ml-4 pl-3 border-l border-gray-700">
                           {item.items.map((subItem) => (
                             <button
@@ -159,9 +167,9 @@ export default function FundManagerDashboard() {
                     </div>
                   ) : (
                     <button
-                      onClick={() => handleTabChange(item.value)}
+                      onClick={() => item.value && handleTabChange(item.value)}
                       className={`w-full flex items-center space-x-2 px-4 py-2 rounded-lg mb-1 transition-colors ${
-                        activeTab === item.value
+                        item.value && activeTab === item.value
                           ? "bg-gray-900 text-white"
                           : "text-gray-300 hover:bg-gray-700"
                       }`}

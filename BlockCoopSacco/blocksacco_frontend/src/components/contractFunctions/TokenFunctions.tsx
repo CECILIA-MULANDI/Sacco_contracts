@@ -15,10 +15,17 @@ function getTokenContractInstance(tokenAddress: string) {
 
 // Get token symbol
 export function useTokenSymbol(tokenAddress: string | undefined) {
+  const contract = tokenAddress
+    ? getTokenContractInstance(tokenAddress)
+    : undefined;
+
   return useReadContract({
-    contract: tokenAddress ? getTokenContractInstance(tokenAddress) : undefined,
+    contract: contract!,
     method: "function symbol() view returns (string)",
     params: [],
+    queryOptions: {
+      enabled: !!contract,
+    },
   });
 }
 

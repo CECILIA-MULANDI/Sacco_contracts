@@ -9,7 +9,7 @@ import { formatUnits } from "ethers/lib/utils";
 import { useGetTokensInfo } from "../contractFunctions/BlockCoopTokensFunctions";
 
 interface LoanRequest {
-  id: number;
+  id: bigint;
   borrower: string;
   loanToken: string;
   loanAmount: string;

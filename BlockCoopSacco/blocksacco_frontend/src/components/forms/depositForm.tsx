@@ -148,7 +148,7 @@ const DepositForm: FC = () => {
     }
   };
 
-  // Monitor deposit events and show success message
+  // Effect to handle successful deposit events
   useEffect(() => {
     if (!depositEvents || !depositTxHash || !userAddress) return;
 
@@ -157,9 +157,9 @@ const DepositForm: FC = () => {
 
     // Find event matching our transaction hash and user address
     const matchingEvent = depositEvents.find(
-      (event) =>
-        event.transactionHash === depositTxHash &&
-        event.args.user.toLowerCase() === userAddress.toLowerCase()
+      (event: any) =>
+        event?.transactionHash === depositTxHash &&
+        event?.args?.user?.toLowerCase() === userAddress.toLowerCase()
     );
 
     if (matchingEvent) {
@@ -167,12 +167,15 @@ const DepositForm: FC = () => {
 
       // Find the token details
       const token = parsedTokens.find(
-        (t) => t.address === matchingEvent.args.tokenAddress
+        (t) => t.address === matchingEvent?.args?.tokenAddress
       );
 
       const formattedAmount = token
-        ? ethers.utils.formatUnits(matchingEvent.args.amount, token.decimals)
-        : ethers.utils.formatEther(matchingEvent.args.amount);
+        ? ethers.utils.formatUnits(
+            matchingEvent?.args?.amount || "0",
+            token.decimals
+          )
+        : ethers.utils.formatEther(matchingEvent?.args?.amount || "0");
 
       displaySuccessMessage(
         `Successfully deposited ${formattedAmount} ${
@@ -243,8 +246,8 @@ const DepositForm: FC = () => {
       console.log("Deposit transaction result:", result);
 
       // Store the transaction hash to match with events
-      if (result?.hash) {
-        setDepositTxHash(result.hash);
+      if ((result as any)?.hash) {
+        setDepositTxHash((result as any).hash);
       } else {
         // If we don't have a hash, display a temporary success message
         displaySuccessMessage(

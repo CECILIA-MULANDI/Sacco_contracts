@@ -346,9 +346,13 @@ export default function OwnerDashboard() {
                     </div>
                   ) : (
                     <button
-                      onClick={() => handleTabChange(item.value)}
+                      onClick={() => {
+                        if (item.value) {
+                          handleTabChange(item.value);
+                        }
+                      }}
                       className={`w-full flex items-center space-x-2 px-4 py-2 rounded-lg mb-1 transition-colors ${
-                        activeTab === item.value
+                        item.value && activeTab === item.value
                           ? "bg-gray-900 text-white"
                           : "text-gray-300 hover:bg-gray-700"
                       }`}

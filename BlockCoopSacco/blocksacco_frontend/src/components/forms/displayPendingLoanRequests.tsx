@@ -32,7 +32,7 @@ export default function DisplayPendingLoanRequests() {
     useMessages();
   const { approveLoanRequest, isPending: isApproving } =
     useApproveLoanRequest();
-  const { rejectLoanRequest, isPending: isRejecting } = useRejectLoanRequest();
+  const { rejectLoanRequest } = useRejectLoanRequest();
   const {
     data: requests,
     isLoading: requestsLoading,
@@ -44,6 +44,7 @@ export default function DisplayPendingLoanRequests() {
   const [transactionStatus, setTransactionStatus] = useState<
     Record<string, "pending" | "confirmed" | "failed">
   >({});
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const loanRequests = useMemo(
     () =>
@@ -164,26 +165,24 @@ export default function DisplayPendingLoanRequests() {
   const handleReject = async (requestId: bigint) => {
     const requestIdStr = requestId.toString();
     try {
+      setIsRejecting(true);
       setTransactionStatus((prev) => ({ ...prev, [requestIdStr]: "pending" }));
       setProcessedRequestIds((prev) => new Set([...prev, requestIdStr]));
 
-      const result = await rejectLoanRequest(requestId);
+      await rejectLoanRequest(requestId);
 
-      // Check if the transaction was successful
-      if (result) {
-        showSuccess("Transaction submitted successfully!");
-        setTransactionStatus((prev) => ({
-          ...prev,
-          [requestIdStr]: "confirmed",
-        }));
+      showSuccess("Transaction submitted successfully!");
+      setTransactionStatus((prev) => ({
+        ...prev,
+        [requestIdStr]: "confirmed",
+      }));
 
-        // Wait a bit for the blockchain to update
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Wait a bit for the blockchain to update
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        // Refetch to verify the change
-        await refetchRequests();
-        showSuccess("Loan request rejected and confirmed on blockchain!");
-      }
+      // Refetch to verify the change
+      await refetchRequests();
+      showSuccess("Loan request rejected and confirmed on blockchain!");
     } catch (error: any) {
       setTransactionStatus((prev) => ({ ...prev, [requestIdStr]: "failed" }));
       setProcessedRequestIds((prev) => {
@@ -192,6 +191,8 @@ export default function DisplayPendingLoanRequests() {
         return newSet;
       });
       showError(error.message ?? "Failed to reject loan request");
+    } finally {
+      setIsRejecting(false);
     }
   };
 

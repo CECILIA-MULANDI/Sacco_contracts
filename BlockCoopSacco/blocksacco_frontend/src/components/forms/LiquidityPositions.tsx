@@ -5,7 +5,8 @@ import { useGetLendingPoolInfo } from "../contractFunctions/LoanManagerFunctions
 import { useGetUserDeposit } from "../contractFunctions/BlockCoopTokensFunctions";
 
 export default function LiquidityPositions() {
-  const { address } = useActiveAccount();
+  const account = useActiveAccount();
+  const address = account?.address;
   const { data: supportedTokens } = useGetSupportedLoanTokens();
 
   if (!supportedTokens || supportedTokens.length === 0) {
