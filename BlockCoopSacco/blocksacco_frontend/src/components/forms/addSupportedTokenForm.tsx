@@ -47,8 +47,8 @@ const AddSupportedTokenForm: FC = () => {
   const formattedTokens = formatTokenInfo();
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+    <div className="max-w-md mx-auto bg-gray-800 rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
+      <h2 className="text-lg font-semibold text-white mb-4">
         Add Supported Loan Token
       </h2>
 
@@ -56,7 +56,7 @@ const AddSupportedTokenForm: FC = () => {
         <div>
           <label
             htmlFor="token"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-white-800"
           >
             Select Token
           </label>
@@ -64,7 +64,7 @@ const AddSupportedTokenForm: FC = () => {
             id="token"
             value={selectedToken}
             onChange={(e) => setSelectedToken(e.target.value)}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+            className="bg-blue-900 mt-1 block w-full pl-3 pr-10 py-2 text-base border-blue-800 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             disabled={isLoading}
           >
             <option value="">Select a token</option>

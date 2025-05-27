@@ -34,9 +34,11 @@ export const getContractInstance = () => {
   });
 };
 export const BLOCKCOOPTOKENS_CONTRACT_ADDRESS =
-  "0x4CA138AA51187984b21961b7fAc784c729e34f1a";
+  "0xFB72F0acE60b8E8a2eAb5e98c9F005b422F5Cb70";
+// "0x4CA138AA51187984b21961b7fAc784c729e34f1a";
 export const LOANMANAGER_CONTRACT_ADDRESS =
-  "0x5B7511FC6ecDA99F7B4f0504EE850669cA9f8592";
+  "0x1AaEb0D828adDebf9CB7c2A9f2E653d57557FCa3";
+// "0x5B7511FC6ecDA99F7B4f0504EE850669cA9f8592";
 export const getLoanManagerContractInstance = () => {
   return getContract({
     client,

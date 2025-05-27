@@ -351,10 +351,10 @@ export function useGetLockedAmount(
   return useReadContract({
     contract,
     method:
-      "function getLockedAmount(address user, address token) view returns (uint256)",
+      "function getLockedAmount(address user, address tokenAddress) view returns (uint256)",
     params: [
-      userAddress || "0x0000000000000000000000000000000000000000",
-      tokenAddress || "0x0000000000000000000000000000000000000000",
+      userAddress ?? "0x0000000000000000000000000000000000000000",
+      tokenAddress ?? "0x0000000000000000000000000000000000000000",
     ],
     queryOptions: {
       enabled: !!(userAddress && tokenAddress),

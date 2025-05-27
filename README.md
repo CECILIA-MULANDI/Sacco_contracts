@@ -1,69 +1,269 @@
-There are two main contracts:
+# BlockSacco - Decentralized Cooperative Lending Platform
 
-BlockCoopTokens: A token management system for a cooperative
-MyLoanManager: A lending system that leverages the tokens deposited in the cooperative
+BlockSacco is a decentralized finance (DeFi) platform that enables cooperative-style lending and borrowing using blockchain technology. The platform allows users to deposit ERC20 tokens as collateral and request loans against their deposits, with fund managers overseeing the approval process.
 
-Key Flow
+## 🏗️ Project Architecture
 
-1. Token Deposit System
+The project consists of three main components:
 
-Users can deposit whitelisted ERC20 tokens into the BlockCoopTokens contract
-These tokens serve as a pool of liquidity for the cooperative
-Tokens are whitelisted by fund managers or the owner
-Each token has an associated price feed
+### 1. Smart Contracts (`BlockCoopSacco/hardhat-javascript-starter/contracts/`)
 
-2. Loan Request Process
+- **BlockCoopTokens.sol**: Core token management contract handling deposits, withdrawals, and collateral management
+- **LoanManager.sol**: Loan lifecycle management including requests, approvals, and repayments
 
-A user who has deposited tokens can request a loan through MyLoanManager
-They specify:
+### 2. Frontend Application (`BlockCoopSacco/blocksacco_frontend/`)
 
-Which token they want to borrow
-How much they want to borrow
-Which of their deposited tokens to use as collateral
-The loan duration
+- React + TypeScript application built with Vite
+- Thirdweb integration for Web3 connectivity
+- Role-based access control (Owner, Fund Manager, User)
+- Tailwind CSS for styling
 
-3. Loan Approval Process
+### 3. Smart Contract Development Environment (`BlockCoopSacco/hardhat-javascript-starter/`)
 
-A fund manager reviews the loan request
-The system calculates the collateral value and loan value in USD
-Verifies the loan-to-value ratio is below the maximum threshold (70%)
-Checks that the borrower has sufficient collateral in the BlockCoopTokens contract
-Calculates an interest rate based on risk factors
+- Hardhat configuration for zkSync Era deployment
+- Thirdweb deployment integration
+- OpenZeppelin and Chainlink dependencies
 
-4. Loan Issuance
+## 🚀 Quick Start
 
-When approved, collateral tokens are transferred from BlockCoopTokens to MyLoanManager
-The requested loan tokens are transferred to the borrower
-A loan record is created with all details
+### Prerequisites
 
-5. Loan Repayment
+- Node.js (v16 or higher)
+- Yarn or npm
+- MetaMask or compatible Web3 wallet
 
-The borrower can repay their loan (principal + interest) in parts or all at once
-When the loan is fully repaid, their collateral is returned
+### Installation
 
-Key Features
+1. **Clone the repository**
 
-Risk Management:
+   ```bash
+   git clone <repository-url>
+   cd modified_BlockSacco
+   ```
 
-Required collateral ratio of 150%
-Maximum LTV ratio of 70%
-Interest rates adjusted based on risk factors
+2. **Install Smart Contract Dependencies**
 
-Multi-token Support:
+   ```bash
+   cd BlockCoopSacco/hardhat-javascript-starter
+   npm install
+   ```
 
-Users can deposit various ERC20 tokens
-External price feeds determine token values
-Support for different tokens as collateral and loan currency
+3. **Install Frontend Dependencies**
+   ```bash
+   cd ../blocksacco_frontend
+   npm install
+   ```
 
-Governance Features:
+### Environment Setup
 
-Owner and fund manager roles for administration
-Whitelisting of tokens
-Contract can be paused in emergencies
+1. **Smart Contract Environment**
 
-User Portfolio Management:
+   ```bash
+   cd BlockCoopSacco/hardhat-javascript-starter
+   cp .env.example .env
+   # Add your private key and other required variables
+   ```
 
-Users can see their deposited tokens and total value
-Users can access their loan history
+2. **Frontend Environment**
+   ```bash
+   cd BlockCoopSacco/blocksacco_frontend
+   cp .env.example .env
+   # Add your Thirdweb client ID
+   VITE_TEMPLATE_CLIENT_ID=your_thirdweb_client_id
+   ```
 
-BlockCoopTokens --- 0x29975ac32ec83ba90f6be269fce191b79a90c4a6
+### Development
+
+1. **Start Frontend Development Server**
+
+   ```bash
+   cd BlockCoopSacco/blocksacco_frontend
+   npm run dev
+   ```
+
+2. **Compile Smart Contracts**
+
+   ```bash
+   cd BlockCoopSacco/hardhat-javascript-starter
+   npx hardhat compile
+   ```
+
+3. **Deploy Smart Contracts**
+   ```bash
+   npx thirdweb deploy -k <your-private-key>
+   ```
+
+## 📋 Core Features
+
+### Token Management (BlockCoopTokens)
+
+- **Multi-token Support**: Deposit various whitelisted ERC20 tokens
+- **Price Feed Integration**: Chainlink oracles for real-time token pricing
+- **Collateral Management**: Lock/unlock tokens for loan collateral
+- **Role-based Access**: Owner and fund manager permissions
+- **Emergency Controls**: Pause functionality and emergency withdrawals
+
+### Loan Management (LoanManager)
+
+- **Loan Requests**: Users can request loans against their deposits
+- **Risk Assessment**: Automated LTV (Loan-to-Value) ratio calculations
+- **Interest Rate Calculation**: Dynamic rates based on risk factors
+- **Repayment System**: Partial or full loan repayments
+- **Collateral Return**: Automatic collateral release upon full repayment
+
+### Frontend Features
+
+- **Wallet Integration**: Seamless Web3 wallet connectivity
+- **Role-based Dashboards**: Different interfaces for owners, fund managers, and users
+- **Real-time Data**: Live contract state updates
+- **Responsive Design**: Mobile-friendly interface
+- **Transaction Management**: Easy contract interaction
+
+## 🔧 Smart Contract Details
+
+### BlockCoopTokens Contract
+
+**Key Functions:**
+
+- `depositTokens(address token, uint256 amount)`: Deposit tokens to the cooperative
+- `withdrawTokens(address token, uint256 amount)`: Withdraw available tokens
+- `whitelistToken(address token, address priceFeed)`: Add supported tokens (Owner/Fund Manager)
+- `lockDepositAsCollateral()`: Lock tokens for loan collateral
+- `unlockCollateral()`: Release collateral after loan repayment
+
+**Security Features:**
+
+- ReentrancyGuard protection
+- Pausable functionality
+- Emergency pause with timelock
+- Multi-signature support for critical operations
+
+### LoanManager Contract
+
+**Key Functions:**
+
+- `requestLoan()`: Submit a loan request with collateral
+- `approveLoanRequest()`: Approve loan requests (Fund Manager)
+- `repayLoan()`: Make loan repayments
+- `addSupportedLoanToken()`: Add tokens available for borrowing
+
+**Risk Management:**
+
+- Maximum LTV ratio: 70%
+- Required collateral ratio: 150%
+- Interest rate range: 0-50%
+- Loan duration limits: 7 days to 365 days
+
+## 🎯 User Roles & Permissions
+
+### Contract Owner
+
+- Deploy and configure contracts
+- Add/remove fund managers
+- Whitelist tokens and price feeds
+- Emergency controls
+- Set loan manager contract
+
+### Fund Manager
+
+- Approve/reject loan requests
+- Add supported loan tokens
+- Manage lending pool liquidity
+- Whitelist new tokens
+
+### Regular User
+
+- Deposit/withdraw tokens
+- Request loans
+- Repay loans
+- View portfolio and loan history
+
+## 📁 Project Structure
+
+```
+modified_BlockSacco/
+├── current_working_v1/           # Latest contract versions
+│   ├── BlockCoop.sol
+│   └── LoanManager.sol
+├── BlockCoopSacco/
+│   ├── hardhat-javascript-starter/  # Smart contract development
+│   │   ├── contracts/
+│   │   ├── scripts/
+│   │   ├── test/
+│   │   └── hardhat.config.js
+│   ├── blocksacco_frontend/         # React frontend
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   ├── config/
+│   │   │   └── App.tsx
+│   │   ├── package.json
+│   │   └── vite.config.ts
+│   └── decision.txt                 # Deployment decisions
+└── README.md
+```
+
+## 🔄 Typical User Flow
+
+1. **Setup Phase**
+
+   - Owner deploys contracts
+   - Owner adds fund managers
+   - Fund managers whitelist tokens and set price feeds
+
+2. **User Interaction**
+
+   - User connects wallet to frontend
+   - User deposits ERC20 tokens to cooperative
+   - User requests loan specifying collateral and loan terms
+
+3. **Loan Process**
+   - Fund manager reviews loan request
+   - System validates collateral and LTV ratio
+   - Upon approval, loan is issued and collateral locked
+   - User repays loan over time
+   - Collateral released upon full repayment
+
+## 🛠️ Development Commands
+
+### Smart Contracts
+
+```bash
+# Compile contracts
+npx hardhat compile
+
+# Run tests
+npx hardhat test
+
+# Deploy with Thirdweb
+npx thirdweb deploy
+
+# Verify contracts
+npx hardhat verify --network zkSyncSepoliaTestnet <contract-address>
+```
+
+### Frontend
+
+```bash
+# Development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint code
+npm run lint
+```
+
+## 🔗 Deployed Contracts
+
+- **BlockCoopTokens**: `0xFB72F0acE60b8E8a2eAb5e98c9F005b422F5Cb70`
+
+- **LoanManager**:
+  `0x1AaEb0D828adDebf9CB7c2A9f2E653d57557FCa3`;
+
+---
+
+**Note**: This is a DeFi application handling financial transactions. Always conduct thorough testing and security audits before deploying to mainnet.

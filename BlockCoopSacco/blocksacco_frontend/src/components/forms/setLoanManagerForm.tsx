@@ -57,7 +57,7 @@ export default function SetLoanManagerForm() {
             onChange={(e) => setLoanManagerAddress(e.target.value)}
             placeholder="Enter LoanManager contract address"
             required
-            className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            className="p-3 mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
         </div>
 

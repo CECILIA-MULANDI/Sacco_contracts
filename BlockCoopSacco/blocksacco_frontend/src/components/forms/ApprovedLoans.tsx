@@ -6,6 +6,7 @@ import {
   useLiquidateLoan,
   useIsLoanLiquidatable,
 } from "../contractFunctions/LoanManagerFunctions";
+import { useTokenSymbol } from "../contractFunctions/TokenFunctions";
 
 interface Loan {
   id: bigint;
@@ -104,81 +105,111 @@ export default function ApprovedLoans() {
       </h2>
 
       {loans.length === 0 ? (
-        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-          <p className="text-gray-300">No approved loans found.</p>
+        <div className="bg-indigo-600 rounded-lg p-4 border border-indigo-500">
+          <p className="text-white">No approved loans found.</p>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {loans.map((loan) => {
-            const overdue = isLoanOverdue(loan);
-            return (
-              <div
-                key={loan.id.toString()}
-                className="bg-gray-800 rounded-lg p-4 border border-gray-700"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-white">
-                        Loan #{loan.id.toString()}
-                      </h3>
-                      <span
-                        className={`px-2 py-1 rounded text-sm ${
-                          loan.isActive
-                            ? "bg-green-900 text-green-200"
-                            : "bg-gray-700 text-gray-300"
-                        }`}
-                      >
-                        {loan.isActive ? "Active" : "Completed"}
-                      </span>
-                      {overdue && loan.isActive && (
-                        <span className="px-2 py-1 rounded text-sm bg-red-900 text-red-200">
-                          Overdue
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead>
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Loan ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Borrower
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Interest Rate
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Start Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Duration
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Repaid
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-700">
+              {loans.map((loan) => {
+                const overdue = isLoanOverdue(loan);
+                return (
+                  <tr key={loan.id.toString()} className="bg-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                      {loan.id.toString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {loan.borrower.slice(0, 6)}...{loan.borrower.slice(-4)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {formatUnits(loan.loanAmount, 18)}{" "}
+                      <TokenDisplay address={loan.loanToken} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {(Number(loan.interestRate) / 100).toFixed(2)}%
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {new Date(
+                        Number(loan.startTime) * 1000
+                      ).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {Number(loan.duration) / (24 * 60 * 60)} days
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {formatUnits(loan.totalRepaid, 18)}{" "}
+                      <TokenDisplay address={loan.loanToken} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-1 rounded text-sm ${
+                            loan.isActive
+                              ? "bg-green-900 text-green-200"
+                              : "bg-gray-700 text-gray-300"
+                          }`}
+                        >
+                          {loan.isActive ? "Active" : "Completed"}
                         </span>
+                        {overdue && loan.isActive && (
+                          <span className="px-2 py-1 rounded text-sm bg-red-900 text-red-200">
+                            Overdue
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {loan.isActive && overdue && (
+                        <button
+                          onClick={() => handleLiquidate(loan.id)}
+                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                        >
+                          Liquidate
+                        </button>
                       )}
-                    </div>
-
-                    <div className="text-sm space-y-1 text-gray-300">
-                      <p>
-                        Borrower: {loan.borrower.slice(0, 6)}...
-                        {loan.borrower.slice(-4)}
-                      </p>
-                      <p>Amount: {formatUnits(loan.loanAmount, 18)}</p>
-                      <p>
-                        Interest Rate:{" "}
-                        {(Number(loan.interestRate) / 100).toFixed(2)}%
-                      </p>
-                      <p>
-                        Start:{" "}
-                        {new Date(
-                          Number(loan.startTime) * 1000
-                        ).toLocaleDateString()}
-                      </p>
-                      <p>
-                        Duration: {Number(loan.duration) / (24 * 60 * 60)} days
-                      </p>
-                      <p>Repaid: {formatUnits(loan.totalRepaid, 18)}</p>
-                    </div>
-                  </div>
-
-                  {/* Liquidate Button */}
-                  {loan.isActive && overdue && (
-                    <button
-                      onClick={() => handleLiquidate(loan.id)}
-                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                    >
-                      Liquidate
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
       {/* Debug information */}
-      <div className="mt-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
+      {/* <div className="mt-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
         <h3 className="text-sm font-semibold text-gray-300 mb-2">
           Debug Info:
         </h3>
@@ -194,7 +225,16 @@ export default function ApprovedLoans() {
             2
           )}
         </pre>
-      </div>
+      </div> */}
     </div>
   );
+}
+
+function TokenDisplay({ address }: { address: string }) {
+  const { data: symbol, isLoading } = useTokenSymbol(address);
+
+  if (isLoading) return <span className="text-gray-500">...</span>;
+  if (!symbol) return null;
+
+  return <span className="text-gray-400">{symbol}</span>;
 }

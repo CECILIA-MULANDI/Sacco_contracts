@@ -249,6 +249,9 @@ const LiquidityManagementForm: FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       setApprovalStatus("approved");
+      displaySuccessMessage(
+        `Token approval successful! Now adding liquidity...`
+      );
       return true;
     } catch (error) {
       console.error("Error during token approval:", error);
@@ -298,23 +301,29 @@ const LiquidityManagementForm: FC = () => {
       // First approve the tokens
       const approved = await handleApprove(amountInWei);
       if (!approved) {
+        alert("Token approval failed. Please try again.");
         setIsSubmitting(false);
         return;
       }
 
-      // Then add liquidity
-      await addLiquidity(selectedToken, BigInt(amountInWei));
+      try {
+        // Then add liquidity
+        await addLiquidity(selectedToken, BigInt(amountInWei));
 
-      // Reset form after successful liquidity addition
-      setAmount("");
-      setSelectedToken("");
-      setApprovalStatus("idle");
+        // Reset form after successful liquidity addition
+        setAmount("");
+        setSelectedToken("");
+        setApprovalStatus("idle");
 
-      displaySuccessMessage(
-        `Successfully added ${amount} ${token.symbol} to liquidity pool!`
-      );
+        displaySuccessMessage(
+          `Successfully added ${amount} ${token.symbol} to liquidity pool!`
+        );
+      } catch (error) {
+        console.error("Error adding liquidity:", error);
+        alert("Failed to add liquidity. Please try again.");
+      }
     } catch (error) {
-      console.error("Error during liquidity addition:", error);
+      console.error("Error during liquidity addition process:", error);
       alert("Adding liquidity failed. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -453,14 +462,14 @@ const LiquidityManagementForm: FC = () => {
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-lg shadow-md border">
+      <div className="bg-gray-800 p-6 rounded-lg shadow-md text-white">
         {/* Tab Navigation */}
-        <div className="flex mb-6 border-b border-gray-200">
+        <div className="flex mb-6 border-b border-gray-700">
           <button
             className={`py-2 px-4 font-medium text-sm focus:outline-none ${
               activeTab === "add"
-                ? "border-b-2 border-indigo-500 text-indigo-600"
-                : "text-gray-500 hover:text-gray-700"
+                ? "border-b-2 border-blue-500 text-blue-400"
+                : "text-gray-400 hover:text-gray-200"
             }`}
             onClick={() => setActiveTab("add")}
           >
@@ -469,8 +478,8 @@ const LiquidityManagementForm: FC = () => {
           <button
             className={`py-2 px-4 font-medium text-sm focus:outline-none ${
               activeTab === "remove"
-                ? "border-b-2 border-indigo-500 text-indigo-600"
-                : "text-gray-500 hover:text-gray-700"
+                ? "border-b-2 border-blue-500 text-blue-400"
+                : "text-gray-400 hover:text-gray-200"
             }`}
             onClick={() => setActiveTab("remove")}
           >
@@ -478,20 +487,20 @@ const LiquidityManagementForm: FC = () => {
           </button>
         </div>
 
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
+        <h3 className="text-lg font-medium text-white mb-4">
           {activeTab === "add" ? "Add Liquidity" : "Remove Liquidity"}
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-gray-300 mb-4">
           {activeTab === "add"
             ? "Provide liquidity to earn yield from loan interest. Your tokens will be available for borrowers and you'll receive a share of the interest payments."
             : "Remove your liquidity from the pool. You can withdraw your tokens along with any earned rewards."}
         </p>
 
         {isLoading && (
-          <p className="text-gray-500">Loading supported tokens...</p>
+          <p className="text-gray-300">Loading supported tokens...</p>
         )}
         {isError && (
-          <p className="text-red-500">
+          <p className="text-red-400">
             Error loading tokens. Please try again.
           </p>
         )}
@@ -506,7 +515,7 @@ const LiquidityManagementForm: FC = () => {
             <div>
               <label
                 htmlFor="token"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-white mb-2"
               >
                 Select Token
               </label>
@@ -514,7 +523,7 @@ const LiquidityManagementForm: FC = () => {
                 id="token"
                 value={selectedToken}
                 onChange={(e) => setSelectedToken(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="bg-gray-700 w-full pl-3 px-4 py-2 border text-base border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 disabled={
                   isSubmitting ||
                   approvalStatus === "approving" ||
@@ -533,7 +542,7 @@ const LiquidityManagementForm: FC = () => {
 
             {/* Show wallet balance for add tab */}
             {activeTab === "add" && tokenBalance && (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-300">
                 <span>Wallet Balance: </span>
                 <span className="font-medium">
                   {tokenBalance}{" "}
@@ -547,16 +556,16 @@ const LiquidityManagementForm: FC = () => {
 
             {/* Show LP position for remove tab */}
             {activeTab === "remove" && userLPPosition && selectedToken && (
-              <div className="bg-gray-50 p-4 rounded-md space-y-2">
+              <div className="bg-white rounded-lg p-4 space-y-2">
                 <h4 className="font-medium text-gray-900">
                   Your Liquidity Position
                 </h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600">
+                    <span className="text-gray-500">
                       Available to Withdraw:{" "}
                     </span>
-                    <span className="font-medium">
+                    <span className="font-medium text-gray-900">
                       {userLPPosition.tokenAmount}{" "}
                       {
                         parsedTokens.find((t) => t.address === selectedToken)
@@ -565,8 +574,8 @@ const LiquidityManagementForm: FC = () => {
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Pending Rewards: </span>
-                    <span className="font-medium">
+                    <span className="text-gray-500">Pending Rewards: </span>
+                    <span className="font-medium text-gray-900">
                       {userLPPosition.pendingRewards}{" "}
                       {
                         parsedTokens.find((t) => t.address === selectedToken)
@@ -581,7 +590,7 @@ const LiquidityManagementForm: FC = () => {
             <div>
               <label
                 htmlFor="amount"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-white mb-2"
               >
                 Amount
               </label>
@@ -593,7 +602,7 @@ const LiquidityManagementForm: FC = () => {
                 placeholder={`Enter amount to ${
                   activeTab === "add" ? "add as" : "remove from"
                 } liquidity`}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="bg-gray-700 w-full pl-3 px-4 py-2 border text-base border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 disabled={
                   isSubmitting ||
                   approvalStatus === "approving" ||
@@ -613,7 +622,7 @@ const LiquidityManagementForm: FC = () => {
                       (parseFloat(userLPPosition.tokenAmount) * 0.25).toString()
                     )
                   }
-                  className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600"
                   disabled={isSubmitting || isRemovingLiquidity}
                 >
                   25%
@@ -625,7 +634,7 @@ const LiquidityManagementForm: FC = () => {
                       (parseFloat(userLPPosition.tokenAmount) * 0.5).toString()
                     )
                   }
-                  className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600"
                   disabled={isSubmitting || isRemovingLiquidity}
                 >
                   50%
@@ -637,7 +646,7 @@ const LiquidityManagementForm: FC = () => {
                       (parseFloat(userLPPosition.tokenAmount) * 0.75).toString()
                     )
                   }
-                  className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600"
                   disabled={isSubmitting || isRemovingLiquidity}
                 >
                   75%
@@ -645,7 +654,7 @@ const LiquidityManagementForm: FC = () => {
                 <button
                   type="button"
                   onClick={() => setAmount(userLPPosition.tokenAmount)}
-                  className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600"
                   disabled={isSubmitting || isRemovingLiquidity}
                 >
                   Max
@@ -668,8 +677,8 @@ const LiquidityManagementForm: FC = () => {
                 approvalStatus === "approving" ||
                 isAddingLiquidity ||
                 isRemovingLiquidity
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-900 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900"
               }`}
             >
               {isSubmitting
@@ -687,7 +696,7 @@ const LiquidityManagementForm: FC = () => {
           </form>
         ) : (
           !isLoading && (
-            <p className="text-gray-500">
+            <p className="text-gray-300">
               {activeTab === "add"
                 ? "No supported tokens available for liquidity provision."
                 : "You don't have any liquidity positions to remove."}

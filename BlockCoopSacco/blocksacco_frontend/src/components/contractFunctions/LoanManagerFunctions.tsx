@@ -708,3 +708,81 @@ export function useGetLoan(loanId: bigint) {
     params: [loanId],
   });
 }
+
+// Approve token spending for loan repayment
+export function useApproveToken() {
+  const { mutateAsync: sendTransaction, isPending } = useSendTransaction();
+  const { displaySuccessMessage: showSuccess, displayErrorMessage: showError } =
+    useMessages();
+
+  const approveToken = async (tokenAddress: string, amount: bigint) => {
+    try {
+      const tokenContract = getContract({
+        client,
+        address: tokenAddress as `0x${string}`,
+        chain,
+      });
+
+      const transaction = prepareContractCall({
+        contract: tokenContract,
+        method: "function approve(address spender, uint256 amount)",
+        params: [LOANMANAGER_CONTRACT_ADDRESS, amount],
+      });
+
+      return await sendTransaction(transaction, {
+        onSuccess: (tx) => {
+          showSuccess(
+            `Token approval successful! Transaction hash: ${tx.transactionHash}`
+          );
+        },
+        onError: (error: any) => {
+          showError(error.message ?? "Failed to approve token");
+          throw error;
+        },
+      });
+    } catch (error: any) {
+      showError(error.message ?? "Failed to approve token");
+      throw error;
+    }
+  };
+
+  return { approveToken, isPending };
+}
+
+// Check token allowance
+export function useGetTokenAllowance(
+  tokenAddress: string | undefined,
+  ownerAddress: string | undefined
+) {
+  const shouldFetch = Boolean(tokenAddress && ownerAddress);
+
+  // Create a dummy contract when we don't want to fetch to avoid null issues
+  const dummyContract = getContract({
+    client,
+    address: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+    chain,
+  });
+
+  const targetContract = shouldFetch
+    ? getContract({
+        client,
+        address: tokenAddress as `0x${string}`,
+        chain,
+      })
+    : dummyContract;
+
+  return useReadContract({
+    contract: targetContract,
+    method:
+      "function allowance(address owner, address spender) view returns (uint256)",
+    params: shouldFetch
+      ? [ownerAddress!, LOANMANAGER_CONTRACT_ADDRESS]
+      : [
+          "0x0000000000000000000000000000000000000000",
+          LOANMANAGER_CONTRACT_ADDRESS,
+        ],
+    queryOptions: {
+      enabled: shouldFetch,
+    },
+  });
+}

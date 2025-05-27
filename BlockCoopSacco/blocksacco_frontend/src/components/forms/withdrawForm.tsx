@@ -4,6 +4,7 @@ import {
   useTokensInfo,
   useWithdraw,
   useGetUserDeposit,
+  useGetLockedAmount,
 } from "../contractFunctions/BlockCoopTokensFunctions";
 import { useWithdrawEvents } from "../contractFunctions/useContractEvents";
 import { useMessages } from "../hooks/useSuccessOrErrorMessage";
@@ -27,31 +28,40 @@ interface WithdrawEvent {
 }
 
 const WithdrawForm: FC = () => {
-  // State management
   const [selectedToken, setSelectedToken] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [parsedTokens, setParsedTokens] = useState<Token[]>([]);
   const [withdrawTxHash, setWithdrawTxHash] = useState<string | null>(null);
-  const { successMessage, displaySuccessMessage, clearSuccessMessage } =
-    useMessages();
+  const { successMessage, displaySuccessMessage } = useMessages();
 
-  // Get the connected user's wallet address
   const account = useActiveAccount();
   const userAddress = account?.address as `0x${string}` | undefined;
 
+  // Get the locked amount hook
+  const { data: lockedAmountData } = useGetLockedAmount(
+    userAddress,
+    selectedToken
+  );
+  const [availableBalance, setAvailableBalance] = useState<string | null>(null);
+  const [lockedAmount, setLockedAmount] = useState<string | null>(null);
+  const [depositAmount, setDepositAmount] = useState<string | null>(null);
+
   // Fetch whitelisted tokens
-  const { data: tokensData, isLoading, isError } = useTokensInfo(0, 100);
+  const { data: tokensData } = useTokensInfo(0, 100);
 
   // Get withdraw events
-  const { events: withdrawEvents, isLoading: isLoadingEvents } =
-    useWithdrawEvents(withdrawTxHash || undefined);
+  const { events: withdrawEvents } = useWithdrawEvents(
+    withdrawTxHash ?? undefined
+  );
+
+  // Get user's deposit amount for selected token
+  const { data: depositData } = useGetUserDeposit(userAddress, selectedToken);
 
   // Parse tokens data when available
   useEffect(() => {
     if (tokensData) {
       const [addresses, names, symbols, decimals, prices] = tokensData;
-
       const tokens: Token[] = addresses.map((address, index) => ({
         address,
         name: names[index],
@@ -59,48 +69,56 @@ const WithdrawForm: FC = () => {
         decimals: decimals[index],
         price: prices?.[index]?.toString(),
       }));
-
       setParsedTokens(tokens);
     }
   }, [tokensData]);
 
-  // Hook to handle withdrawals
-  const withdraw = useWithdraw();
-
-  // Get user's deposit amount for selected token
-  const { data: depositData } = useGetUserDeposit(userAddress, selectedToken);
-  const [depositAmount, setDepositAmount] = useState<string | null>(null);
-
-  // Update deposit amount when deposit data changes
+  // Update available balance when deposit data or locked amount changes
   useEffect(() => {
-    if (depositData && selectedToken) {
-      const token = parsedTokens.find((t) => t.address === selectedToken);
-      if (token) {
-        try {
-          const [amount] = depositData;
-          const formattedAmount = ethers.utils.formatUnits(
-            amount.toString(),
-            token.decimals
-          );
-          setDepositAmount(formattedAmount);
-        } catch (error) {
-          console.error("Error formatting deposit amount:", error);
-          setDepositAmount(null);
-        }
-      }
-    } else {
-      setDepositAmount(null);
-    }
-  }, [depositData, selectedToken, parsedTokens]);
+    const updateBalances = async () => {
+      if (depositData && selectedToken && userAddress) {
+        const token = parsedTokens.find((t) => t.address === selectedToken);
+        if (token) {
+          try {
+            const [totalAmount] = depositData;
+            // Format amounts
+            const formattedTotal = ethers.utils.formatUnits(
+              totalAmount.toString(),
+              token.decimals
+            );
+            const formattedLocked = ethers.utils.formatUnits(
+              (lockedAmountData ?? BigInt(0)).toString(),
+              token.decimals
+            );
 
-  // Monitor withdraw events and show success message
+            // Calculate available balance
+            const available =
+              parseFloat(formattedTotal) - parseFloat(formattedLocked);
+
+            setDepositAmount(formattedTotal);
+            setLockedAmount(formattedLocked);
+            setAvailableBalance(available.toFixed(token.decimals));
+          } catch (error) {
+            console.error("Error calculating available balance:", error);
+            setDepositAmount(null);
+            setLockedAmount(null);
+            setAvailableBalance(null);
+          }
+        }
+      } else {
+        setDepositAmount(null);
+        setLockedAmount(null);
+        setAvailableBalance(null);
+      }
+    };
+
+    updateBalances();
+  }, [depositData, selectedToken, userAddress, parsedTokens, lockedAmountData]);
+
+  // Monitor withdraw events
   useEffect(() => {
     if (!withdrawEvents || !withdrawTxHash || !userAddress) return;
 
-    console.log("Current withdraw txHash:", withdrawTxHash);
-    console.log("All withdraw events:", withdrawEvents);
-
-    // Find event matching our transaction hash and user address
     const matchingEvent = (withdrawEvents as WithdrawEvent[]).find(
       (event) =>
         event.transactionHash === withdrawTxHash &&
@@ -108,9 +126,6 @@ const WithdrawForm: FC = () => {
     );
 
     if (matchingEvent) {
-      console.log("Found matching withdraw event:", matchingEvent);
-
-      // Find the token details
       const token = parsedTokens.find(
         (t) => t.address === matchingEvent.args.tokenAddress
       );
@@ -126,7 +141,6 @@ const WithdrawForm: FC = () => {
         `Successfully withdrew ${formattedAmount} ${token?.symbol || "tokens"}!`
       );
 
-      // Reset form after successful withdrawal
       setAmount("");
       setSelectedToken("");
       setWithdrawTxHash(null);
@@ -139,12 +153,15 @@ const WithdrawForm: FC = () => {
     displaySuccessMessage,
   ]);
 
+  // Get withdraw function
+  const withdraw = useWithdraw();
+
   // Handle form submission
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!selectedToken || !amount) {
-      alert("Please select a token and enter an amount.");
+    if (!selectedToken || !amount || !availableBalance) {
+      alert("Please select a token and enter a valid amount.");
       return;
     }
 
@@ -159,9 +176,9 @@ const WithdrawForm: FC = () => {
       return;
     }
 
-    if (depositAmount && parseFloat(amount) > parseFloat(depositAmount)) {
+    if (amountNum > parseFloat(availableBalance)) {
       alert(
-        `Insufficient deposit. You have ${depositAmount} tokens deposited.`
+        `Insufficient available balance. You can withdraw up to ${availableBalance} tokens.`
       );
       return;
     }
@@ -179,15 +196,12 @@ const WithdrawForm: FC = () => {
         .parseUnits(amount, token.decimals)
         .toString();
 
-      // Call withdraw function and wait for it to complete
       const result = await withdraw(selectedToken, amountInWei);
       console.log("Withdraw transaction result:", result);
 
-      // Store the transaction hash to match with events
       if (result?.transactionHash) {
         setWithdrawTxHash(result.transactionHash);
       } else {
-        // If we don't have a hash, display a temporary success message
         displaySuccessMessage(
           "Transaction submitted. Waiting for confirmation..."
         );
@@ -201,117 +215,111 @@ const WithdrawForm: FC = () => {
   };
 
   return (
-    <>
-      {/* Success message toast notification */}
-      {successMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md flex items-center max-w-md">
-          <div className="mr-3">
-            <svg
-              className="h-6 w-6 text-green-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">{successMessage}</div>
-          <button
-            onClick={clearSuccessMessage}
-            className="ml-auto text-green-500 hover:text-green-700"
+    <div className="bg-gray-800 rounded-lg shadow-md p-6 text-white">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label
+            htmlFor="token"
+            className="block text-sm font-medium text-white"
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+            Select Token
+          </label>
+          <select
+            id="token"
+            value={selectedToken}
+            onChange={(e) => setSelectedToken(e.target.value)}
+            className="bg-gray-700 mt-1 block w-full pl-3 px-4 py-2  border  text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+            disabled={isSubmitting}
+          >
+            <option value="">Select a token</option>
+            {parsedTokens.map((token) => (
+              <option key={token.address} value={token.address}>
+                {token.symbol}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
 
-      <div className="bg-gray-800 text-white p-4 rounded-lg shadow-md">
-        <h3 className="text-lg font-medium mb-4">Withdraw Tokens</h3>
-
-        {isLoading && <p>Loading tokens...</p>}
-        {isError && <p>Error loading tokens. Please try again.</p>}
-
-        {parsedTokens.length > 0 ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="token" className="block text-sm font-medium mb-2">
-                Select Token
-              </label>
-              <select
-                id="token"
-                value={selectedToken}
-                onChange={(e) => setSelectedToken(e.target.value)}
-                className="w-full px-4 py-2 border rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isSubmitting}
-              >
-                <option value="">-- Select a Token --</option>
-                {parsedTokens.map((token) => (
-                  <option key={token.address} value={token.address}>
-                    {token.name} ({token.symbol})
-                  </option>
-                ))}
-              </select>
+        {selectedToken && (
+          <div className="bg-white rounded-lg p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Total Deposited:</span>
+              <span className="font-medium text-gray-900">
+                {depositAmount || "0"}{" "}
+                {parsedTokens.find((t) => t.address === selectedToken)?.symbol}
+              </span>
             </div>
-
-            {depositAmount && (
-              <div className="text-sm bg-gray-700 p-3 rounded-md">
-                <span className="text-gray-300">Your Deposit: </span>
-                <span className="font-medium">{depositAmount}</span>
-              </div>
-            )}
-
-            <div>
-              <label
-                htmlFor="amount"
-                className="block text-sm font-medium mb-2"
-              >
-                Amount
-              </label>
-              <input
-                id="amount"
-                type="text"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount to withdraw"
-                className="w-full px-4 py-2 border rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isSubmitting}
-              />
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Locked as Collateral:</span>
+              <span className="font-medium text-red-600">
+                {lockedAmount || "0"}{" "}
+                {parsedTokens.find((t) => t.address === selectedToken)?.symbol}
+              </span>
             </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting || !selectedToken || !amount}
-              className={`w-full px-4 py-2 rounded-md text-white ${
-                isSubmitting
-                  ? "bg-gray-600 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {isSubmitting ? "Processing..." : "Withdraw"}
-            </button>
-          </form>
-        ) : (
-          <p>No tokens available for withdrawal.</p>
+            <div className="flex justify-between text-sm border-t pt-2">
+              <span className="text-gray-500">Available for Withdrawal:</span>
+              <span className="font-medium text-green-600">
+                {availableBalance || "0"}{" "}
+                {parsedTokens.find((t) => t.address === selectedToken)?.symbol}
+              </span>
+            </div>
+          </div>
         )}
-      </div>
-    </>
+
+        <div>
+          <label
+            htmlFor="amount"
+            className="block text-sm font-medium text-white"
+          >
+            Amount to Withdraw
+          </label>
+          <div className="mt-1 relative rounded-md shadow-sm">
+            <input
+              type="number"
+              id="amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="bg-gray-700 focus:ring-blue-500 focus:border-blue-500 block w-full pl-3 pr-12 px-4 py-2 border  sm:text-sm border-gray-300 rounded-md"
+              placeholder="0.0"
+              disabled={isSubmitting}
+              step="any"
+              min="0"
+              max={availableBalance || "0"}
+            />
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              <span className="text-gray-300 sm:text-sm">
+                {parsedTokens.find((t) => t.address === selectedToken)?.symbol}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={
+            isSubmitting ||
+            !selectedToken ||
+            !amount ||
+            parseFloat(amount) <= 0 ||
+            !availableBalance ||
+            parseFloat(amount) > parseFloat(availableBalance)
+          }
+          className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+            isSubmitting
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-blue-900 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900"
+          }`}
+        >
+          {isSubmitting ? "Processing..." : "Withdraw"}
+        </button>
+
+        {successMessage && (
+          <div className="mt-4 p-4 bg-green-50 rounded-md">
+            <p className="text-sm text-green-700">{successMessage}</p>
+          </div>
+        )}
+      </form>
+    </div>
   );
 };
 

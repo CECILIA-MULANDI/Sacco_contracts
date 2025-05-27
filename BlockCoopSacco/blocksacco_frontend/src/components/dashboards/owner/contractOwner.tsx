@@ -12,7 +12,7 @@ import {
 import { useMessages } from "../../hooks/useSuccessOrErrorMessage";
 import WhitelistTokenForm from "../../forms/whiteListTokens";
 import TokenInfoDisplay from "../../forms/displayTokens";
-import DisplaySupportedLoanTokens from "../../forms/displaySupportedLoanTokens";
+// import DisplaySupportedLoanTokens from "../../forms/displaySupportedLoanTokens";
 import SetLoanManagerForm from "../../forms/setLoanManagerForm";
 import LoanManagement from "../../forms/LoanManagement";
 import AddSupportedTokenForm from "../../forms/addSupportedTokenForm";
@@ -21,6 +21,102 @@ import AddLiquidityForm from "../../forms/addLiquidityForm";
 import ManagePoolStatus from "../../forms/ManagePoolStatus";
 import ApprovedLoans from "../../forms/ApprovedLoans";
 
+const menuItems = [
+  {
+    label: "Manage Fund Managers",
+    value: "managers",
+    icon: (
+      <svg
+        className="w-6 h-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+        />
+      </svg>
+    ),
+  },
+  {
+    label: "General Deposits",
+    isDropdown: true,
+    icon: (
+      <svg
+        className="w-6 h-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+    ),
+    items: [
+      {
+        label: "Whitelist Tokens",
+        value: "tokens",
+      },
+      {
+        label: "Display Whitelisted Tokens",
+        value: "displayTokens",
+      },
+    ],
+  },
+  {
+    label: "Loan Module",
+    isDropdown: true,
+    icon: (
+      <svg
+        className="w-6 h-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+        />
+      </svg>
+    ),
+    items: [
+      {
+        label: "Add Supported Token",
+        value: "addSupportedToken",
+      },
+      {
+        label: "Set Loan Manager",
+        value: "setLoanManager",
+      },
+      {
+        label: "Display Loan Requests",
+        value: "loanRequests",
+      },
+      {
+        label: "Add Liquidity",
+        value: "addLiquidity",
+      },
+      {
+        label: "Manage Pool Status",
+        value: "poolStatus",
+      },
+      {
+        label: "Approved Loans",
+        value: "approvedLoans",
+      },
+    ],
+  },
+];
+
 export default function OwnerDashboard() {
   const location = useLocation();
   const [newManagerAddress, setNewManagerAddress] = useState("");
@@ -28,6 +124,7 @@ export default function OwnerDashboard() {
     const savedTab = localStorage.getItem("ownerDashboardTab");
     return savedTab || "managers";
   });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
 
   const {
@@ -46,6 +143,10 @@ export default function OwnerDashboard() {
 
   const lastAddedEventHashRef = useRef("");
   const lastRemovedEventHashRef = useRef("");
+
+  const [openDropdowns, setOpenDropdowns] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   useEffect(() => {
     const events = addedEventsObj.events as
@@ -134,62 +235,25 @@ export default function OwnerDashboard() {
   };
 
   const handleTabChange = (tab: string) => {
-    console.log("Changing tab to:", tab);
     localStorage.setItem("ownerDashboardTab", tab);
     setActiveTab(tab);
   };
 
-  const tabs = [
-    {
-      label: "Manage Fund Managers",
-      value: "managers",
-    },
-    {
-      label: "Whitelist Tokens",
-      value: "tokens",
-    },
-    {
-      label: "Display Whitelisted Tokens",
-      value: "displayTokens",
-    },
-    {
-      label: "Add Supported Token",
-      value: "addSupportedToken",
-    },
-    {
-      label: "Set Loan Manager",
-      value: "setLoanManager",
-    },
-    {
-      label: "Manage Liquidity",
-      value: "liquidity",
-    },
-    {
-      label: "Display Loan Requests",
-      value: "loanRequests",
-    },
-    {
-      label: "Add Liquidity",
-      value: "addLiquidity",
-    },
-    {
-      label: "Manage Pool Status",
-      value: "poolStatus",
-    },
-    {
-      label: "Approved Loans",
-      value: "approvedLoans",
-    },
-  ];
+  const toggleDropdown = (label: string) => {
+    setOpenDropdowns((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-900">
       {/* Success message toast notification */}
       {successMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md flex items-center max-w-md">
+        <div className="fixed top-4 right-4 z-50 bg-green-900/50 border border-green-700 text-green-200 p-4 rounded shadow-md flex items-center max-w-md">
           <div className="mr-3">
             <svg
-              className="h-6 w-6 text-green-500"
+              className="h-6 w-6 text-green-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -205,7 +269,7 @@ export default function OwnerDashboard() {
           <div className="flex-1">{successMessage}</div>
           <button
             onClick={clearSuccessMessage}
-            className="ml-4 text-green-700 hover:text-green-900"
+            className="ml-4 text-green-400 hover:text-green-300"
           >
             <svg
               className="h-5 w-5"
@@ -224,74 +288,148 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => handleTabChange(tab.value)}
-                className={`
-                  py-3 px-4 rounded-lg text-sm font-medium
-                  ${
-                    activeTab === tab.value
-                      ? "bg-indigo-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
-                  }
-                `}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-6">
-            {activeTab === "managers" && (
-              <div className="bg-white shadow sm:rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    Add Fund Manager
-                  </h3>
-                  <div className="mt-2 max-w-xl text-sm text-gray-500">
-                    <p>Enter the wallet address of the fund manager to add.</p>
-                  </div>
-                  <div className="mt-5">
-                    <div className="flex gap-4">
-                      <input
-                        type="text"
-                        value={newManagerAddress}
-                        onChange={(e) => setNewManagerAddress(e.target.value)}
-                        placeholder="Enter wallet address"
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      />
+      <div className="flex">
+        {/* Sidebar */}
+        <div
+          className={`bg-gray-800 text-white w-64 min-h-screen ${
+            isSidebarOpen ? "" : "hidden"
+          }`}
+        >
+          <div className="p-4">
+            <h2 className="text-xl font-semibold mb-4">Owner Dashboard</h2>
+            <nav className="space-y-1">
+              {menuItems.map((item) => (
+                <div key={item.label}>
+                  {item.isDropdown ? (
+                    <div className="space-y-1">
                       <button
-                        onClick={handleAddManager}
-                        disabled={addingManager}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        onClick={() => toggleDropdown(item.label)}
+                        className="w-full flex items-center justify-between px-4 py-2 rounded-lg transition-colors text-gray-300 hover:bg-gray-700"
                       >
-                        {addingManager ? "Adding..." : "Add Manager"}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-gray-400">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </div>
+                        <svg
+                          className={`w-5 h-5 transform transition-transform ${
+                            openDropdowns[item.label] ? "rotate-180" : ""
+                          }`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
                       </button>
+                      {openDropdowns[item.label] && (
+                        <div className="ml-4 pl-3 border-l border-gray-700">
+                          {item.items.map((subItem) => (
+                            <button
+                              key={subItem.value}
+                              onClick={() => handleTabChange(subItem.value)}
+                              className={`w-full flex items-center space-x-2 px-4 py-2 rounded-lg mb-1 transition-colors ${
+                                activeTab === subItem.value
+                                  ? "bg-gray-900 text-white"
+                                  : "text-gray-300 hover:bg-gray-700"
+                              }`}
+                            >
+                              <span>{subItem.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {addManagerError && (
-                      <p className="mt-2 text-sm text-red-600">
-                        {addManagerError}
+                  ) : (
+                    <button
+                      onClick={() => handleTabChange(item.value)}
+                      className={`w-full flex items-center space-x-2 px-4 py-2 rounded-lg mb-1 transition-colors ${
+                        activeTab === item.value
+                          ? "bg-gray-900 text-white"
+                          : "text-gray-300 hover:bg-gray-700"
+                      }`}
+                    >
+                      <span className="text-gray-400">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-8">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="fixed top-4 left-4 z-20 p-2 rounded-md bg-gray-800 text-white hover:bg-gray-700"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+
+          <div className="max-w-6xl mx-auto">
+            {activeTab === "managers" && (
+              <div className="space-y-6">
+                <div className="bg-gray-800 shadow-lg rounded-lg border border-gray-700">
+                  <div className="px-4 py-5 sm:p-6">
+                    <h3 className="text-lg leading-6 font-medium text-white">
+                      Add Fund Manager
+                    </h3>
+                    <div className="mt-2 max-w-xl text-sm text-gray-300">
+                      <p>
+                        Enter the wallet address of the fund manager to add.
                       </p>
-                    )}
+                    </div>
+                    <div className="mt-5">
+                      <div className="flex gap-4">
+                        <input
+                          type="text"
+                          value={newManagerAddress}
+                          onChange={(e) => setNewManagerAddress(e.target.value)}
+                          placeholder="Enter wallet address"
+                          className="shadow-sm bg-gray-700 border-gray-600 text-white focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md"
+                        />
+                        <button
+                          onClick={handleAddManager}
+                          disabled={addingManager}
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          {addingManager ? "Adding..." : "Add Manager"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {activeTab === "managers" && (
-              <div className="mt-6 bg-white shadow sm:rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    Active Fund Managers
-                  </h3>
-                  <div className="mt-2 max-w-xl text-sm text-gray-500">
-                    <p>List of currently active fund managers.</p>
+                <div className="bg-gray-800 shadow-lg rounded-lg border border-gray-700">
+                  <div className="px-4 py-5 sm:p-6">
+                    <h3 className="text-lg leading-6 font-medium text-white">
+                      Active Fund Managers
+                    </h3>
+                    <div className="mt-2 max-w-xl text-sm text-gray-300">
+                      <p>List of currently active fund managers.</p>
+                    </div>
+                    <div className="mt-5 text-white">
+                      {renderFundManagersList()}
+                    </div>
                   </div>
-                  <div className="mt-5">{renderFundManagersList()}</div>
                 </div>
               </div>
             )}
@@ -299,17 +437,15 @@ export default function OwnerDashboard() {
             {activeTab === "tokens" && <WhitelistTokenForm />}
             {activeTab === "displayTokens" && <TokenInfoDisplay />}
             {activeTab === "addSupportedToken" && <AddSupportedTokenForm />}
-
             {activeTab === "setLoanManager" && <SetLoanManagerForm />}
-
             {activeTab === "loanRequests" && <LoanManagement />}
             {activeTab === "addLiquidity" && (
-              <div className="bg-white shadow sm:rounded-lg">
+              <div className="bg-gray-800 shadow-lg rounded-lg border border-gray-700">
                 <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-white mb-4">
                     Add Liquidity
                   </h3>
-                  <div className="mt-2 max-w-xl text-sm text-gray-500 mb-4">
+                  <div className="mt-2 max-w-xl text-sm text-gray-300 mb-4">
                     <p>Provide liquidity to earn yield from loan interest.</p>
                   </div>
                   <AddLiquidityForm />
@@ -317,12 +453,12 @@ export default function OwnerDashboard() {
               </div>
             )}
             {activeTab === "poolStatus" && (
-              <div className="bg-white shadow sm:rounded-lg">
+              <div className="bg-gray-800 shadow-lg rounded-lg border border-gray-700">
                 <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-white mb-4">
                     Manage Pool Status
                   </h3>
-                  <div className="mt-2 max-w-xl text-sm text-gray-500 mb-4">
+                  <div className="mt-2 max-w-xl text-sm text-gray-300 mb-4">
                     <p>
                       Activate or deactivate liquidity pools for supported
                       tokens.
@@ -332,12 +468,7 @@ export default function OwnerDashboard() {
                 </div>
               </div>
             )}
-
-            {activeTab === "approvedLoans" && (
-              <div>
-                <ApprovedLoans />
-              </div>
-            )}
+            {activeTab === "approvedLoans" && <ApprovedLoans />}
           </div>
         </div>
       </div>

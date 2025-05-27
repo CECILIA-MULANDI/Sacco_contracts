@@ -16,7 +16,6 @@ import { BLOCKCOOPTOKENS_CONTRACT_ADDRESS } from "../../config";
 import { useMessages } from "../hooks/useSuccessOrErrorMessage";
 import { useActiveAccount } from "thirdweb/react";
 import { ethers } from "ethers";
-import CollateralDiagnostics from "./CollateralDiagnostics";
 
 export default function RequestLoanForm() {
   const [loanToken, setLoanToken] = useState("");
@@ -110,20 +109,20 @@ export default function RequestLoanForm() {
       );
 
       // Calculate collateral value in USD
-    const collateralValueUSD =
+      const collateralValueUSD =
         Number(
           (amountInWei.toBigInt() * collateralTokenInfo.price) / BigInt(1e18)
         ) / 1e18;
 
-    // Calculate max loan value in USD using contract's LTV ratio
+      // Calculate max loan value in USD using contract's LTV ratio
       const maxLoanValueUSD =
         (collateralValueUSD * Number(maxLtvRatio)) / 10000;
 
-    // Convert max USD value back to loan token units
-    const loanTokenPriceUSD = Number(loanTokenInfo.price) / 1e18;
-    const maxLoanTokenAmount = maxLoanValueUSD / loanTokenPriceUSD;
+      // Convert max USD value back to loan token units
+      const loanTokenPriceUSD = Number(loanTokenInfo.price) / 1e18;
+      const maxLoanTokenAmount = maxLoanValueUSD / loanTokenPriceUSD;
 
-    return maxLoanTokenAmount;
+      return maxLoanTokenAmount;
     } catch (error) {
       console.error("Error calculating max borrow amount:", error);
       return 0;
@@ -336,199 +335,125 @@ export default function RequestLoanForm() {
 
   const isLoading = isSubmitting || isRequestPending || isDepositPending;
 
-  // Add some debug logging
-  console.log("RequestLoanForm rendered", {
-    supportedTokens: supportedTokens?.length || 0,
-    userTokens: userTokens?.length || 0,
-    isLoading,
-    userAddress,
-  });
+  // // Add some debug logging
+  // console.log("RequestLoanForm rendered", {
+  //   supportedTokens: supportedTokens?.length || 0,
+  //   userTokens: userTokens?.length || 0,
+  //   isLoading,
+  //   userAddress,
+  // });
 
   return (
-    <div
-      style={{
-        backgroundColor: "white",
-        padding: "24px",
-        borderRadius: "8px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-        border: "1px solid #e5e7eb",
-        maxWidth: "600px",
-      }}
-    >
-      <h3
-        style={{
-          fontSize: "18px",
-          fontWeight: "500",
-          color: "#111827",
-          marginBottom: "16px",
-        }}
-      >
-        Request Loan
-      </h3>
-      <p
-        style={{
-          fontSize: "14px",
-          color: "#6b7280",
-          marginBottom: "24px",
-        }}
-      >
+    <div className="bg-gray-800 rounded-lg shadow-md p-6 border border-gray-700">
+      <h3 className="text-xl font-semibold text-white mb-2">Request Loan</h3>
+      <p className="text-gray-300 text-sm mb-6">
         Request a loan by providing collateral from your deposited tokens. Your
         collateral will be locked until the loan is repaid.
       </p>
 
       {!userAddress && (
-        <div
-          style={{
-            backgroundColor: "#fef3c7",
-            border: "1px solid #f59e0b",
-            padding: "12px",
-            borderRadius: "6px",
-            marginBottom: "16px",
-          }}
-        >
-          <p style={{ color: "#92400e", fontSize: "14px" }}>
+        <div className="bg-yellow-900/50 border border-yellow-700 rounded-lg p-4 mb-4">
+          <p className="text-yellow-200 text-sm">
             Please connect your wallet to request a loan.
           </p>
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-      >
-      <div>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              fontWeight: "500",
-              color: "#374151",
-              marginBottom: "6px",
-            }}
-          >
-          Loan Token
-        </label>
-        <select
-          value={loanToken}
-          onChange={(e) => setLoanToken(e.target.value)}
-          required
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div>
+          <label className="block text-sm font-medium text-gray-200 mb-1">
+            Loan Token
+          </label>
+          <select
+            value={loanToken}
+            onChange={(e) => setLoanToken(e.target.value)}
+            required
             disabled={isLoading}
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              fontSize: "14px",
-              backgroundColor: isLoading ? "#f3f4f6" : "white",
-            }}
-        >
+            className={`w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white ${
+              isLoading ? "opacity-50" : ""
+            }`}
+          >
             <option value="">Select token to borrow</option>
-          {supportedTokens.map((token: string) => {
-            const details = tokenDetails.get(token);
-            return (
-              <option key={token} value={token}>
-                {details?.symbol || "Unknown"} - {details?.name || token}
-              </option>
-            );
-          })}
-        </select>
+            {supportedTokens.map((token: string) => {
+              const details = tokenDetails.get(token);
+              return (
+                <option key={token} value={token}>
+                  {details?.symbol || "Unknown"} - {details?.name || token}
+                </option>
+              );
+            })}
+          </select>
           {supportedTokens.length === 0 && (
-            <p style={{ fontSize: "12px", color: "#ef4444", marginTop: "4px" }}>
+            <p className="mt-1 text-sm text-red-400">
               No supported tokens available. Please check your connection.
             </p>
           )}
-      </div>
+        </div>
 
         <div>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              fontWeight: "500",
-              color: "#374151",
-              marginBottom: "6px",
-            }}
-          >
-          Loan Amount
-        </label>
-        <input
+          <label className="block text-sm font-medium text-gray-200 mb-1">
+            Loan Amount
+          </label>
+          <input
             type="number"
             min="0"
             step="0.000001"
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              fontSize: "14px",
-              backgroundColor: isLoading ? "#f3f4f6" : "white",
-            }}
-          placeholder="Enter loan amount"
-          value={loanAmount}
-          onChange={(e) => setLoanAmount(e.target.value)}
+            className={`w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white ${
+              isLoading ? "opacity-50" : ""
+            }`}
+            placeholder="Enter loan amount"
+            value={loanAmount}
+            onChange={(e) => setLoanAmount(e.target.value)}
             disabled={isLoading}
             required
-        />
-        {maxBorrowAmount > 0 && (
-            <p style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
-            Maximum borrowing amount: {maxBorrowAmount.toFixed(6)}{" "}
-            {tokenDetails.get(loanToken)?.symbol || "tokens"} (
+          />
+          {maxBorrowAmount > 0 && (
+            <p className="mt-1 text-sm text-gray-400">
+              Maximum borrowing amount: {maxBorrowAmount.toFixed(6)}{" "}
+              {tokenDetails.get(loanToken)?.symbol || "tokens"} (
               {Number(maxLtvRatio) / 100}% LTV)
-          </p>
-        )}
-      </div>
+            </p>
+          )}
+        </div>
 
         <div>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              fontWeight: "500",
-              color: "#374151",
-              marginBottom: "6px",
-            }}
-          >
-          Collateral Token
-        </label>
-        <select
-          value={collateralToken}
-          onChange={(e) => setCollateralToken(e.target.value)}
-          required
+          <label className="block text-sm font-medium text-gray-200 mb-1">
+            Collateral Token
+          </label>
+          <select
+            value={collateralToken}
+            onChange={(e) => setCollateralToken(e.target.value)}
+            required
             disabled={isLoading}
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              fontSize: "14px",
-              backgroundColor: isLoading ? "#f3f4f6" : "white",
-            }}
-        >
+            className={`w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white ${
+              isLoading ? "opacity-50" : ""
+            }`}
+          >
             <option value="">Select collateral token</option>
-          {userTokens.map((token: string) => {
-            const details = tokenDetails.get(token);
+            {userTokens.map((token: string) => {
+              const details = tokenDetails.get(token);
               const balance =
                 collateralToken === token
                   ? Number(availableCollateralAmount) /
                     Math.pow(10, details?.decimals || 18)
                   : 0;
-            return (
-              <option key={token} value={token}>
+              return (
+                <option key={token} value={token}>
                   {details?.symbol || "Unknown"} - {details?.name || "Unknown"}
-                {collateralToken === token
+                  {collateralToken === token
                     ? ` (Available: ${balance.toFixed(6)})`
-                  : ""}
-              </option>
-            );
-          })}
-        </select>
+                    : ""}
+                </option>
+              );
+            })}
+          </select>
           {userTokens.length === 0 && (
-            <p style={{ fontSize: "12px", color: "#f59e0b", marginTop: "4px" }}>
+            <p className="mt-1 text-sm text-yellow-400">
               No deposited tokens available. Please deposit tokens first.
             </p>
           )}
           {collateralToken && (
-            <p style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
+            <p className="mt-1 text-sm text-gray-400">
               Available balance:{" "}
               {(
                 Number(availableCollateralAmount) /
@@ -536,7 +461,7 @@ export default function RequestLoanForm() {
               ).toFixed(6)}{" "}
               {tokenDetails.get(collateralToken)?.symbol || "tokens"}
               {lockedAmount > BigInt(0) && (
-                <span style={{ color: "#f59e0b" }}>
+                <span className="text-yellow-400">
                   {" "}
                   (Locked:{" "}
                   {(
@@ -551,115 +476,63 @@ export default function RequestLoanForm() {
               )}
             </p>
           )}
-      </div>
+        </div>
 
-      <div>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              fontWeight: "500",
-              color: "#374151",
-              marginBottom: "6px",
-            }}
-          >
-          Collateral Amount
-        </label>
-        <input
-          type="number"
-          min="0"
-          step="0.000001"
-          value={collateralAmount}
-          onChange={(e) => setCollateralAmount(e.target.value)}
-          required
+        <div>
+          <label className="block text-sm font-medium text-gray-200 mb-1">
+            Collateral Amount
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.000001"
+            value={collateralAmount}
+            onChange={(e) => setCollateralAmount(e.target.value)}
+            required
             disabled={isLoading}
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              fontSize: "14px",
-              backgroundColor: isLoading ? "#f3f4f6" : "white",
-            }}
+            className={`w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white ${
+              isLoading ? "opacity-50" : ""
+            }`}
             placeholder="Enter collateral amount"
-        />
-      </div>
-
-        {/* Add Collateral Diagnostics */}
-        {collateralToken && (
-          <CollateralDiagnostics
-            tokenAddress={collateralToken}
-            tokenSymbol={tokenDetails.get(collateralToken)?.symbol || "Unknown"}
           />
-        )}
+        </div>
 
-      <div>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              fontWeight: "500",
-              color: "#374151",
-              marginBottom: "6px",
-            }}
-          >
+        <div>
+          <label className="block text-sm font-medium text-gray-200 mb-1">
             Loan Duration
-        </label>
-        <select
-          value={duration}
-          onChange={(e) => setDuration(parseInt(e.target.value))}
-          required
+          </label>
+          <select
+            value={duration}
+            onChange={(e) => setDuration(parseInt(e.target.value))}
+            required
             disabled={isLoading}
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              fontSize: "14px",
-              backgroundColor: isLoading ? "#f3f4f6" : "white",
-            }}
-        >
-          {durationOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+            className={`w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white ${
+              isLoading ? "opacity-50" : ""
+            }`}
+          >
+            {durationOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <button
-        type="submit"
+        <button
+          type="submit"
           disabled={isLoading || userTokens.length === 0}
-          style={{
-            width: "100%",
-            padding: "12px 16px",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontWeight: "500",
-            color: "white",
-            backgroundColor:
-              isLoading || userTokens.length === 0 ? "#9ca3af" : "#4f46e5",
-            border: "none",
-            cursor:
-              isLoading || userTokens.length === 0 ? "not-allowed" : "pointer",
-            transition: "background-color 0.2s",
-          }}
-          onMouseOver={(e) => {
-            if (!isLoading && userTokens.length > 0) {
-              e.currentTarget.style.backgroundColor = "#4338ca";
-            }
-          }}
-          onMouseOut={(e) => {
-            if (!isLoading && userTokens.length > 0) {
-              e.currentTarget.style.backgroundColor = "#4f46e5";
-            }
-          }}
+          className={`w-full px-4 py-2 text-sm font-medium rounded-lg transition-colors
+            ${
+              isLoading || userTokens.length === 0
+                ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                : "bg-blue-600 text-white hover:bg-blue-700"
+            }`}
         >
           {isLoading ? "Processing..." : "Request Loan"}
-      </button>
-    </form>
+        </button>
+      </form>
 
-      <div style={{ marginTop: "20px", fontSize: "12px", color: "#6b7280" }}>
+      {/* <div style={{ marginTop: "20px", fontSize: "12px", color: "#6b7280" }}>
         <p>Debug Info:</p>
         <p>Connected: {userAddress ? "Yes" : "No"}</p>
         <p>Supported Tokens: {supportedTokens?.length || 0}</p>
@@ -668,7 +541,7 @@ export default function RequestLoanForm() {
         <p>Total Deposit: {selectedDeposit?.[0]?.toString() || "0"}</p>
         <p>Locked Amount: {lockedAmount.toString()}</p>
         <p>Available Collateral: {availableCollateralAmount.toString()}</p>
-      </div>
+      </div> */}
     </div>
   );
 }

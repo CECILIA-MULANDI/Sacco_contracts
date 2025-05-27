@@ -105,13 +105,13 @@ export default function WhitelistTokenForm() {
       )}
 
       {/* Whitelist Token Form */}
-      <div className="p-4 border rounded-lg bg-gray-50 shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-black">
+      <div className="p-4 border rounded-lg bg-gray-800">
+        <h3 className="text-xl font-semibold mb-4 text-white">
           Whitelist Token
         </h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-white-700 mb-1">
               Token Address
             </label>
             <input
@@ -123,7 +123,7 @@ export default function WhitelistTokenForm() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-white-700 mb-1">
               Price Feed Address
             </label>
             <input

@@ -11,7 +11,9 @@ interface Props {
   canModify?: boolean; // Only owner and fund managers can modify
 }
 
-export default function DisplaySupportedLoanTokens({ canModify = false }: Props): JSX.Element {
+export default function DisplaySupportedLoanTokens({
+  canModify = false,
+}: Props): JSX.Element {
   const [newTokenAddress, setNewTokenAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -68,7 +70,7 @@ export default function DisplaySupportedLoanTokens({ canModify = false }: Props)
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-10">
       <h2 className="text-xl font-semibold text-white mb-4">
         Supported Loan Tokens
       </h2>
@@ -112,7 +114,11 @@ export default function DisplaySupportedLoanTokens({ canModify = false }: Props)
                     {tokenAddress}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-200">
-                    ${(Number(token?.price || 0) / Math.pow(10, token?.decimals || 18)).toFixed(2)}
+                    $
+                    {(
+                      Number(token?.price || 0) /
+                      Math.pow(10, token?.decimals || 18)
+                    ).toFixed(2)}
                   </td>
                   {canModify && (
                     <td className="px-6 py-4 whitespace-nowrap">

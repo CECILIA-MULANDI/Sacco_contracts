@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useGetBorrowerLoanRequests } from "../contractFunctions/LoanManagerFunctions";
 import { useActiveAccount } from "thirdweb/react";
+import { useTokensInfo } from "../contractFunctions/BlockCoopTokensFunctions";
 
 interface LoanRequest {
   borrower: string;
@@ -11,18 +12,6 @@ interface LoanRequest {
   duration: bigint;
   approved: boolean;
   processed: boolean;
-}
-
-// Helper function to get token symbol from address
-function getTokenSymbol(tokenAddress: string): string {
-  const tokenMap: { [key: string]: string } = {
-    "0x0000000000000000000000000000000000000000": "ETH",
-  };
-
-  return (
-    tokenMap[tokenAddress.toLowerCase()] ||
-    `${tokenAddress.slice(0, 6)}...${tokenAddress.slice(-4)}`
-  );
 }
 
 // Helper function to format wei to readable amount
@@ -68,6 +57,26 @@ export default function UserLoanRequestsDisplay() {
     error,
   } = useGetBorrowerLoanRequests(userAddress);
 
+  // Get token information including names and prices
+  const { data: tokensInfo } = useTokensInfo(0, 100);
+
+  // Initialize tokenDetails with an empty Map
+  const tokenDetails = useMemo(() => {
+    if (!tokensInfo) return new Map();
+    const [addresses, names, symbols, decimals, prices] = tokensInfo;
+    return new Map(
+      addresses.map((addr: string, i: number) => [
+        addr.toLowerCase(),
+        {
+          name: names[i] || "Unknown",
+          symbol: symbols[i] || "Unknown",
+          decimals: decimals[i] || 18,
+          price: prices[i] || BigInt(0),
+        },
+      ])
+    );
+  }, [tokensInfo]);
+
   const userRequests = useMemo(() => {
     if (!loanRequestsData || !Array.isArray(loanRequestsData)) {
       return [];
@@ -86,7 +95,7 @@ export default function UserLoanRequestsDisplay() {
       ] = requestData;
 
       return {
-        id: index, // Using index as ID since we don't have the actual request ID
+        id: index,
         borrower,
         loanToken,
         loanAmount,
@@ -106,8 +115,8 @@ export default function UserLoanRequestsDisplay() {
 
   if (!account) {
     return (
-      <div className="text-center p-4 bg-yellow-100 rounded-lg">
-        <p className="text-yellow-800">
+      <div className="text-center p-4 bg-yellow-900/50 border border-yellow-700 rounded-lg">
+        <p className="text-yellow-200">
           Please connect your wallet to view loan requests
         </p>
       </div>
@@ -117,7 +126,7 @@ export default function UserLoanRequestsDisplay() {
   return (
     <div className="space-y-6">
       {/* Debug Panel */}
-      <div className="bg-green-100 p-4 rounded-lg text-sm">
+      {/* <div className="bg-green-100 p-4 rounded-lg text-sm">
         <h4 className="font-bold mb-2">
           ✅ Using getBorrowerLoanRequests Function:
         </h4>
@@ -146,20 +155,20 @@ export default function UserLoanRequestsDisplay() {
             <p>✅ Status</p>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Loading State */}
       {isLoading && (
         <div className="text-center p-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">Loading your loan requests...</p>
+          {/* <p className="mt-2 text-gray-600">Loading your loan requests...</p> */}
         </div>
       )}
 
       {/* Error State */}
       {error && !isLoading && (
-        <div className="text-center p-4 bg-red-100 rounded-lg">
-          <p className="text-red-800">
+        <div className="text-center p-4 bg-red-900/50 border border-red-700 rounded-lg">
+          <p className="text-red-200">
             Error loading loan requests: {error.message}
           </p>
         </div>
@@ -167,9 +176,9 @@ export default function UserLoanRequestsDisplay() {
 
       {/* No Requests State */}
       {!isLoading && !error && userRequests.length === 0 && (
-        <div className="text-center p-8 bg-gray-50 rounded-lg">
-          <p className="text-gray-600 mb-2">No loan requests found.</p>
-          <p className="text-sm text-gray-500">
+        <div className="text-center p-8 bg-gray-800 rounded-lg border border-gray-700">
+          <p className="text-gray-300 mb-2">No loan requests found.</p>
+          <p className="text-sm text-gray-400">
             Submit your first loan request using the form above.
           </p>
         </div>
@@ -177,85 +186,93 @@ export default function UserLoanRequestsDisplay() {
 
       {/* Loan Requests Table */}
       {!isLoading && !error && userRequests.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="bg-green-50 px-6 py-4 border-b border-green-200">
-            <h3 className="text-lg font-semibold text-green-800">
-              ✅ Your Loan Requests ({userRequests.length})
-            </h3>
-          </div>
-
+        <div className="bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-700">
           <div className="overflow-x-auto">
             <table className="w-full table-auto">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Request #
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    Request
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Token
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Duration
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Collateral
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-700">
                 {userRequests.map((request, index) => {
                   const status = getRequestStatus(
                     request.approved,
                     request.processed
                   );
+                  const loanTokenInfo = tokenDetails.get(
+                    request.loanToken.toLowerCase()
+                  );
+
                   return (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{index + 1}
+                    <tr key={index} className="hover:bg-gray-700">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-200">
+                        {index + 1}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
                         <div>
                           <div className="font-medium">
-                            {getTokenSymbol(request.loanToken)}
+                            {loanTokenInfo?.symbol || "Unknown"}
                           </div>
-                          <div className="text-xs text-gray-500 font-mono">
-                            {request.loanToken.slice(0, 10)}...
+                          <div className="text-xs text-gray-400">
+                            {loanTokenInfo?.name ||
+                              request.loanToken.slice(0, 10) + "..."}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
                         <div className="font-medium">
-                          {formatTokenAmount(request.loanAmount)}
+                          {formatTokenAmount(
+                            request.loanAmount,
+                            loanTokenInfo?.decimals
+                          )}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {getTokenSymbol(request.loanToken)}
+                        <div className="text-xs text-gray-400">
+                          {loanTokenInfo?.symbol || "tokens"}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <span className="text-blue-600 font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
+                        <span className="text-blue-400 font-medium">
                           {formatDuration(request.duration)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
                         <div className="space-y-1">
-                          {request.collateralTokens.map((token, idx) => (
-                            <div key={idx} className="text-xs">
-                              <span className="font-medium">
-                                {formatTokenAmount(
-                                  request.collateralAmounts[idx]
-                                )}
-                              </span>{" "}
-                              <span className="text-gray-500">
-                                {getTokenSymbol(token)}
-                              </span>
-                            </div>
-                          ))}
+                          {request.collateralTokens.map((token, idx) => {
+                            const collateralTokenInfo = tokenDetails.get(
+                              token.toLowerCase()
+                            );
+                            return (
+                              <div key={idx} className="text-xs">
+                                <span className="font-medium">
+                                  {formatTokenAmount(
+                                    request.collateralAmounts[idx],
+                                    collateralTokenInfo?.decimals
+                                  )}
+                                </span>{" "}
+                                <span className="text-gray-400">
+                                  {collateralTokenInfo?.symbol || "Unknown"}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -270,14 +287,6 @@ export default function UserLoanRequestsDisplay() {
                 })}
               </tbody>
             </table>
-          </div>
-
-          <div className="bg-blue-50 px-6 py-3 border-t border-blue-200">
-            <p className="text-sm text-blue-800">
-              <strong>✅ Complete Data:</strong> Now showing full loan request
-              details including duration, collateral amounts, and approval
-              status using the contract's getBorrowerLoanRequests function!
-            </p>
           </div>
         </div>
       )}

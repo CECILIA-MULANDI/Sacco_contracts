@@ -52,13 +52,13 @@ const ManagePoolStatus: FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-gray-800 rounded-lg shadow p-6">
       <h2 className="text-xl font-semibold mb-4">Manage Pool Status</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label
             htmlFor="token"
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-sm font-medium text-white mb-1"
           >
             Select Token
           </label>
@@ -66,7 +66,7 @@ const ManagePoolStatus: FC = () => {
             id="token"
             value={selectedToken}
             onChange={(e) => setSelectedToken(e.target.value)}
-            className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            className="w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-800"
           >
             <option value="">Select a token</option>
             {supportedTokens?.map((token: string) => (
@@ -78,13 +78,13 @@ const ManagePoolStatus: FC = () => {
         </div>
 
         {selectedToken && poolInfo && (
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-white">
             Current Status: {poolInfo[5] ? "Active" : "Inactive"}
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-white mb-1">
             New Status
           </label>
           <div className="flex gap-4">

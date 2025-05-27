@@ -1,5 +1,5 @@
 // TokenFunctions.tsx
-import { useSendTransaction } from "thirdweb/react";
+import { useSendTransaction, useReadContract } from "thirdweb/react";
 import { getContract, prepareContractCall } from "thirdweb";
 import { client } from "../../client";
 import { chain } from "../../config";
@@ -10,6 +10,15 @@ function getTokenContractInstance(tokenAddress: string) {
     client,
     address: tokenAddress,
     chain,
+  });
+}
+
+// Get token symbol
+export function useTokenSymbol(tokenAddress: string | undefined) {
+  return useReadContract({
+    contract: tokenAddress ? getTokenContractInstance(tokenAddress) : undefined,
+    method: "function symbol() view returns (string)",
+    params: [],
   });
 }
 

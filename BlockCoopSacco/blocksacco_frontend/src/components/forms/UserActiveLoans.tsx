@@ -3,7 +3,10 @@ import {
   useGetUserLoanIds,
   useRepayLoan,
   useGetLoanById,
+  useApproveToken,
+  useGetTokenAllowance,
 } from "../contractFunctions/LoanManagerFunctions";
+import { useTokensInfo } from "../contractFunctions/BlockCoopTokensFunctions";
 import { useActiveAccount } from "thirdweb/react";
 
 interface LoanCardProps {
@@ -13,7 +16,12 @@ interface LoanCardProps {
     React.SetStateAction<{ [key: string]: string }>
   >;
   handleRepayLoan: (loanId: string, amount: string) => Promise<boolean>;
+  handleApproveToken: (
+    tokenAddress: string,
+    amount: string
+  ) => Promise<boolean>;
   repayPending: boolean;
+  approvePending: boolean;
   formatTokenAmount: (amount: any) => string;
 }
 
@@ -22,17 +30,46 @@ function LoanCard({
   repayAmounts,
   setRepayAmounts,
   handleRepayLoan,
+  handleApproveToken,
   repayPending,
+  approvePending,
   formatTokenAmount,
 }: LoanCardProps) {
+  const account = useActiveAccount();
   const { data: loanData, isPending, error, refetch } = useGetLoanById(loanId);
+  const { data: tokensInfo } = useTokensInfo(0, 100); // Get all tokens info
+  const [tokenSymbol, setTokenSymbol] = useState<string>("tokens");
+
+  // Get token allowance for the loan token
+  const loanTokenAddress = loanData?.[1]; // loanToken is the second element in the tuple
+  const { data: allowance, refetch: refetchAllowance } = useGetTokenAllowance(
+    loanTokenAddress,
+    account?.address
+  );
 
   // Refresh data when repayment is completed
   useEffect(() => {
     if (!repayPending) {
       refetch();
+      refetchAllowance();
     }
-  }, [repayPending, refetch]);
+  }, [repayPending, refetch, refetchAllowance]);
+
+  // Update token symbol when loan data and tokens info are available
+  useEffect(() => {
+    if (loanData && tokensInfo) {
+      const [, loanToken] = loanData;
+      const [tokenAddresses, , tokenSymbols] = tokensInfo;
+
+      const tokenIndex = tokenAddresses.findIndex(
+        (addr: string) => addr.toLowerCase() === loanToken.toLowerCase()
+      );
+
+      if (tokenIndex !== -1 && tokenSymbols[tokenIndex]) {
+        setTokenSymbol(tokenSymbols[tokenIndex]);
+      }
+    }
+  }, [loanData, tokensInfo]);
 
   if (isPending) {
     return (
@@ -96,18 +133,20 @@ function LoanCard({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <div className="bg-gray-50 rounded-lg p-3">
           <p className="text-sm text-gray-600">Loan Amount</p>
-          <p className="text-lg font-semibold">{loanAmountFormatted} tokens</p>
+          <p className="text-lg font-semibold">
+            {loanAmountFormatted} {tokenSymbol}
+          </p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
           <p className="text-sm text-gray-600">Total Repaid</p>
           <p className="text-lg font-semibold text-green-600">
-            {totalRepaidFormatted} tokens
+            {totalRepaidFormatted} {tokenSymbol}
           </p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
           <p className="text-sm text-gray-600">Remaining</p>
           <p className="text-lg font-semibold text-red-600">
-            {remainingDebt.toFixed(4)} tokens
+            {remainingDebt.toFixed(4)} {tokenSymbol}
           </p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
@@ -121,49 +160,116 @@ function LoanCard({
           <h4 className="text-lg font-semibold text-blue-800 mb-3">
             💰 Repay Loan
           </h4>
-          <div className="flex gap-3">
-            <input
-              type="number"
-              placeholder="Amount to repay"
-              value={repayAmount}
-              onChange={(e) =>
-                setRepayAmounts((prev: any) => ({
-                  ...prev,
-                  [loanIdStr]: e.target.value,
-                }))
-              }
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              step="0.01"
-              min="0"
-              max={remainingDebt.toString()}
-            />
-            <button
-              onClick={async () => {
-                if (repayAmount && parseFloat(repayAmount) > 0) {
-                  const success = await handleRepayLoan(loanIdStr, repayAmount);
-                  if (success) {
-                    refetch();
-                  }
-                }
-              }}
-              disabled={
-                !repayAmount ||
-                parseFloat(repayAmount) <= 0 ||
-                parseFloat(repayAmount) > remainingDebt ||
-                repayPending
-              }
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              {repayPending ? "Processing..." : "Repay"}
-            </button>
-          </div>
-          <p className="text-xs text-gray-600 mt-2">
-            Maximum: {remainingDebt.toFixed(4)} tokens
-          </p>
+
+          {/* Check if approval is needed */}
+          {(() => {
+            const repayAmountWei = repayAmount
+              ? BigInt(Math.floor(parseFloat(repayAmount) * Math.pow(10, 18)))
+              : BigInt(0);
+            const currentAllowance = allowance || BigInt(0);
+            const needsApproval =
+              repayAmount &&
+              parseFloat(repayAmount) > 0 &&
+              repayAmountWei > currentAllowance;
+
+            return (
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <input
+                    type="number"
+                    placeholder="Amount to repay"
+                    value={repayAmount}
+                    onChange={(e) =>
+                      setRepayAmounts((prev: any) => ({
+                        ...prev,
+                        [loanIdStr]: e.target.value,
+                      }))
+                    }
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    step="0.01"
+                    min="0"
+                    max={remainingDebt.toString()}
+                  />
+
+                  {needsApproval ? (
+                    <button
+                      onClick={async () => {
+                        if (
+                          repayAmount &&
+                          parseFloat(repayAmount) > 0 &&
+                          loanToken
+                        ) {
+                          const success = await handleApproveToken(
+                            loanToken,
+                            repayAmount
+                          );
+                          if (success) {
+                            refetchAllowance();
+                          }
+                        }
+                      }}
+                      disabled={
+                        !repayAmount ||
+                        parseFloat(repayAmount) <= 0 ||
+                        parseFloat(repayAmount) > remainingDebt ||
+                        approvePending
+                      }
+                      className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {approvePending ? "Approving..." : "Approve"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        if (repayAmount && parseFloat(repayAmount) > 0) {
+                          const success = await handleRepayLoan(
+                            loanIdStr,
+                            repayAmount
+                          );
+                          if (success) {
+                            refetch();
+                            refetchAllowance();
+                          }
+                        }
+                      }}
+                      disabled={
+                        !repayAmount ||
+                        parseFloat(repayAmount) <= 0 ||
+                        parseFloat(repayAmount) > remainingDebt ||
+                        repayPending
+                      }
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {repayPending ? "Processing..." : "Repay"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Show allowance info */}
+                <div className="text-xs text-gray-600">
+                  <p>
+                    Maximum: {remainingDebt.toFixed(4)} {tokenSymbol}
+                  </p>
+                  {Boolean(allowance && allowance > 0n) && (
+                    <p>
+                      Current Allowance: {formatTokenAmount(allowance)}{" "}
+                      {tokenSymbol}
+                    </p>
+                  )}
+                  {needsApproval && (
+                    <p className="text-yellow-600 font-medium">
+                      ⚠️ You need to approve the contract to spend your tokens
+                      first
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
-      <details className="mt-4">
+      {/* <details className="mt-4">
         <summary className="cursor-pointer text-gray-500 text-sm">
           Show loan details
         </summary>
@@ -182,7 +288,7 @@ function LoanCard({
             <strong>Duration:</strong> {Number(duration) / 86400} days
           </p>
         </div>
-      </details>
+      </details> */}
     </div>
   );
 }
@@ -200,6 +306,7 @@ export default function UserActiveLoans() {
   } = useGetUserLoanIds(account?.address);
 
   const { repayLoan, isPending: repayPending } = useRepayLoan();
+  const { approveToken, isPending: approvePending } = useApproveToken();
 
   // Helper to format BigInt to readable number
   const formatTokenAmount = (amount: any): string => {
@@ -236,6 +343,27 @@ export default function UserActiveLoans() {
     }
   };
 
+  const handleApproveToken = async (
+    tokenAddress: string,
+    amount: string
+  ): Promise<boolean> => {
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      console.error("Invalid amount");
+      return false;
+    }
+
+    try {
+      const amountWei = BigInt(
+        Math.floor(parseFloat(amount) * Math.pow(10, 18))
+      );
+      await approveToken(tokenAddress, amountWei);
+      return true;
+    } catch (error: any) {
+      console.error("Approval failed:", error);
+      return false;
+    }
+  };
+
   if (!account) {
     return (
       <div className="text-center p-6 bg-yellow-100 rounded-lg">
@@ -256,7 +384,7 @@ export default function UserActiveLoans() {
   }
 
   if (error) {
-    console.log("Error details:", error);
+    // console.log("Error details:", error);
     return (
       <div className="text-center p-8 bg-red-100 rounded-lg">
         <div className="text-6xl mb-4">⚠️</div>
@@ -301,12 +429,12 @@ export default function UserActiveLoans() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+      {/* <div className="bg-white rounded-lg shadow-md p-6"> */}
+      {/* <h2 className="text-2xl font-bold text-gray-800 mb-2">
           💼 Your Active Loans
-        </h2>
-        <p className="text-gray-600">Found {loanIds.length} loan(s)</p>
-      </div>
+        </h2> */}
+      {/* <p className="text-gray-600">Found {loanIds.length} loan(s)</p> */}
+      {/* </div> */}
 
       <div className="space-y-4">
         {loanIds.map((loanId) => (
@@ -316,7 +444,9 @@ export default function UserActiveLoans() {
             repayAmounts={repayAmounts}
             setRepayAmounts={setRepayAmounts}
             handleRepayLoan={handleRepayLoan}
+            handleApproveToken={handleApproveToken}
             repayPending={repayPending}
+            approvePending={approvePending}
             formatTokenAmount={formatTokenAmount}
           />
         ))}

@@ -907,6 +907,10 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         return supportedTokenList;
     }
 
+    function getPendingRequestIds() external view returns (uint256[] memory) {
+        return pendingRequestIds;
+    }
+
     function getPendingRequests() external view returns (LoanRequest[] memory) {
         LoanRequest[] memory requests = new LoanRequest[](
             pendingRequestIds.length
