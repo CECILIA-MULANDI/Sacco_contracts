@@ -473,6 +473,7 @@ export function useGetUserLoanIds(userAddress: string | undefined) {
     ],
     queryOptions: {
       enabled: !!userAddress,
+      retry: false, // Don't retry on revert
     },
   });
 
@@ -484,7 +485,8 @@ export function useGetUserLoanIds(userAddress: string | undefined) {
       BigInt(1),
     ],
     queryOptions: {
-      enabled: !!userAddress && loan0.data !== undefined,
+      enabled: !!userAddress && loan0.data !== undefined && !loan0.error,
+      retry: false,
     },
   });
 
@@ -496,28 +498,32 @@ export function useGetUserLoanIds(userAddress: string | undefined) {
       BigInt(2),
     ],
     queryOptions: {
-      enabled: !!userAddress && loan1.data !== undefined,
+      enabled: !!userAddress && loan1.data !== undefined && !loan1.error,
+      retry: false,
     },
   });
 
   // Collect valid loan IDs (only from successful calls)
   const validLoanIds: bigint[] = [];
 
-  if (loan0.data !== undefined && loan0.data !== null) {
+  if (loan0.data !== undefined && loan0.data !== null && !loan0.error) {
     validLoanIds.push(loan0.data as bigint);
   }
-  if (loan1.data !== undefined && loan1.data !== null) {
+  if (loan1.data !== undefined && loan1.data !== null && !loan1.error) {
     validLoanIds.push(loan1.data as bigint);
   }
-  if (loan2.data !== undefined && loan2.data !== null) {
+  if (loan2.data !== undefined && loan2.data !== null && !loan2.error) {
     validLoanIds.push(loan2.data as bigint);
   }
 
   // Only consider it loading if loan0 is still loading (the first required call)
   const isLoading = loan0.isPending;
 
-  // Only report error if the first loan call fails (which means no loans exist)
-  const error = loan0.error;
+  // If loan0 reverts with "execution reverted", it means the user has no loans
+  // This is expected behavior, not an error
+  const hasExecutionRevertError =
+    loan0.error?.message?.includes("execution reverted");
+  const error = hasExecutionRevertError ? null : loan0.error;
 
   return {
     data: validLoanIds,

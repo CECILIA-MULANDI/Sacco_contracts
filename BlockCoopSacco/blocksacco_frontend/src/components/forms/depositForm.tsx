@@ -25,6 +25,15 @@ interface Token {
 
 type ApprovalStatus = "idle" | "approving" | "approved" | "failed";
 
+interface DepositEvent {
+  transactionHash: string;
+  args: {
+    user: string;
+    tokenAddress: string;
+    amount: string;
+  };
+}
+
 const DepositForm: FC = () => {
   // State management
   const [selectedToken, setSelectedToken] = useState<string>("");
@@ -160,22 +169,22 @@ const DepositForm: FC = () => {
       (event: any) =>
         event?.transactionHash === depositTxHash &&
         event?.args?.user?.toLowerCase() === userAddress.toLowerCase()
-    );
+    ) as DepositEvent | undefined;
 
-    if (matchingEvent) {
+    if (matchingEvent && matchingEvent.args) {
       console.log("Found matching deposit event:", matchingEvent);
 
       // Find the token details
       const token = parsedTokens.find(
-        (t) => t.address === matchingEvent?.args?.tokenAddress
+        (t) => t.address === matchingEvent.args.tokenAddress
       );
 
       const formattedAmount = token
         ? ethers.utils.formatUnits(
-            matchingEvent?.args?.amount || "0",
+            matchingEvent.args.amount || "0",
             token.decimals
           )
-        : ethers.utils.formatEther(matchingEvent?.args?.amount || "0");
+        : ethers.utils.formatEther(matchingEvent.args.amount || "0");
 
       displaySuccessMessage(
         `Successfully deposited ${formattedAmount} ${
