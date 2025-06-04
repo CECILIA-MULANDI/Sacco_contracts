@@ -1,22 +1,37 @@
 {
-  "name": "hardhat-javascript-starter",
+  "name": "blockcoop-sacco",
+  "version": "1.0.0",
+  "description": "BlockCoop Savings and Credit Cooperative Smart Contracts",
+  "main": "index.js",
   "scripts": {
-    "build": "npx thirdweb@latest detect",
-    "deploy": "npx thirdweb@latest deploy",
-    "publish": "npx thirdweb@latest publish"
-  },
-  "devDependencies": {
-    "@celo/contractkit": "^9.1.1",
-    "@matterlabs/hardhat-zksync-solc": "^1.1.14",
-    "@matterlabs/hardhat-zksync-verify": "^1.2.2",
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "dotenv": "^16.5.0",
-    "hardhat": "^2.23.0"
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "deploy": "npx hardhat run scripts/deploy.js",
+    "deploy:testnet": "npx hardhat run scripts/deploy.js --network sepolia",
+    "verify": "npx hardhat verify",
+    "oracle:deploy": "npx hardhat run scripts/automate-market-data.js deploy",
+    "oracle:start": "node scripts/automate-market-data.js start",
+    "oracle:test": "npx hardhat run scripts/automate-market-data.js test"
   },
   "dependencies": {
     "@chainlink/contracts": "^1.4.0",
-    "@openzeppelin/contracts": "^5.3.0",
-    "@thirdweb-dev/contracts": "^3.8.0",
-    "zksync-ethers": "^6.16.1"
-  }
+    "@openzeppelin/contracts": "^5.0.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0"
+  },
+  "keywords": [
+    "blockchain",
+    "defi",
+    "sacco",
+    "cooperative",
+    "lending",
+    "oracle",
+    "automation",
+    "market-data"
+  ],
+  "author": "BlockCoop Team",
+  "license": "MIT"
 }
