@@ -58,29 +58,17 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
      */
     uint8 public constant STANDARD_DECIMALS = 18;
 
-    /**
-     * @dev Struct to store token information
-     * @param tokenAddress The address of the token
-     * @param priceFeed The address of the price feed for the token
-     * @param isWhitelisted Whether the token is whitelisted
-     */
     struct TokenInfo {
         address tokenAddress;
         address priceFeed;
         bool isWhitelisted;
     }
 
-    /**
-     * @dev Struct to store user deposit information
-     * @param amount The amount of tokens deposited
-     * @param depositTimestamp The timestamp when the deposit was made
-     */
     struct UserDeposit {
         uint256 amount;
         uint256 depositTimestamp;
     }
 
-    // Modify the CollateralLock struct
     struct CollateralLock {
         uint256 amount;
         uint256 loanId;
@@ -94,22 +82,19 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
     mapping(address => address[]) public userDepositedTokens;
 
     mapping(address => bool) public isFundManager;
-    // This keeps track of the position/index of each token in the tokenList array
     mapping(address => uint256) public tokenIndex;
-    // Change the mapping to use a simpler structure
     mapping(address => mapping(address => mapping(uint256 => uint256)))
         public collateralAmounts;
     mapping(address => mapping(address => mapping(uint256 => bool)))
         public collateralLocked;
-    mapping(uint256 => address[]) public loanCollateral; // loanId => collateral tokens
+    // loanId => collateral tokens
+    mapping(uint256 => address[]) public loanCollateral;
     mapping(address => uint256[]) public userLoanIds; // use
     // Track active (whitelisted) tokens for efficient iteration
     uint256 public activeTokenCount;
     address[] public tokenList;
 
     address[] public activeFundManagers;
-    // loanId => array of collateral tokens
-
     // Add emergency pause events
     event EmergencyPaused(address indexed pauser, string reason);
     event EmergencyUnpauseInitiated(
@@ -143,10 +128,6 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
         uint256 amount
     );
 
-    event StalePriceThresholdUpdated(
-        uint256 oldThreshold,
-        uint256 newThreshold
-    );
     event PriceFeedUpdated(
         address indexed tokenAddress,
         address indexed oldPriceFeed,
@@ -185,29 +166,19 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
         uint8 oldDecimals,
         uint8 newDecimals
     );
-
-    // Add new emergency functions
     event EmergencyWithdraw(address indexed token, uint256 amount);
     event TokenPaused(address indexed token, bool paused);
 
-    // Add new state variables
     mapping(address => bool) public pausedTokens;
 
-    // Add timelock state variables
     uint256 public constant TIMELOCK_DURATION = 2 days;
     mapping(bytes32 => uint256) public pendingActions;
 
-    // Add multi-sig state variables
-    // uint256 public requiredSignatures;
     mapping(address => bool) public isSigner;
     mapping(bytes32 => mapping(address => bool)) public hasSigned;
 
     event ActionQueued(bytes32 indexed actionId, uint256 executeAfter);
     event ActionExecuted(bytes32 indexed actionId);
-    event SignerAdded(address indexed signer);
-    event SignerRemoved(address indexed signer);
-    event RequiredSignaturesUpdated(uint256 oldCount, uint256 newCount);
-
     modifier onlyLoanManager() {
         require(msg.sender == loanManager, ERR_ONLY_LOAN_MANAGER);
         _;
@@ -267,15 +238,6 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
         }
 
         emit FundManagerRemoved(_manager);
-    }
-
-    function updateStalePriceThreshold(
-        uint256 _newThreshold
-    ) external onlyOwner {
-        require(_newThreshold > 0, "Threshold must be greater than 0");
-        uint256 oldThreshold = stalePriceThreshold;
-        stalePriceThreshold = _newThreshold;
-        emit StalePriceThresholdUpdated(oldThreshold, _newThreshold);
     }
 
     function pause() external onlyOwner {
@@ -716,42 +678,6 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
         }
     }
 
-    function updateTokenDecimals(
-        address _token,
-        uint8 _newDecimals
-    ) external onlyOwner {
-        require(
-            whiteListedTokens[_token].isWhitelisted,
-            ERR_TOKEN_NOT_WHITELISTED
-        );
-        uint8 oldDecimals = IERC20Metadata(_token).decimals();
-        require(_newDecimals <= 18, "Invalid decimals");
-
-        emit TokenDecimalsUpdated(_token, oldDecimals, _newDecimals);
-    }
-
-    function updatePriceFeedDecimals(
-        address _token,
-        uint8 _newDecimals
-    ) external onlyOwner {
-        require(
-            whiteListedTokens[_token].isWhitelisted,
-            ERR_TOKEN_NOT_WHITELISTED
-        );
-        require(
-            whiteListedTokens[_token].priceFeed != address(0),
-            ERR_NO_PRICE_FEED
-        );
-        require(_newDecimals <= 18, "Invalid decimals");
-
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(
-            whiteListedTokens[_token].priceFeed
-        );
-        uint8 oldDecimals = priceFeed.decimals();
-
-        emit TokenDecimalsUpdated(_token, oldDecimals, _newDecimals);
-    }
-
     function getTokensInfo(
         uint256 _offset,
         uint256 _limit
@@ -1052,42 +978,4 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
         pausedTokens[_token] = false;
         emit TokenPaused(_token, false);
     }
-
-    modifier onlySigner() {
-        require(isSigner[msg.sender], "Not a signer");
-        _;
-    }
-
-    function queueAction(bytes32 actionId) internal {
-        pendingActions[actionId] = block.timestamp + TIMELOCK_DURATION;
-        emit ActionQueued(actionId, pendingActions[actionId]);
-    }
-
-    function executeAction(bytes32 actionId) internal {
-        require(
-            block.timestamp >= pendingActions[actionId],
-            "Timelock not expired"
-        );
-        delete pendingActions[actionId];
-        emit ActionExecuted(actionId);
-    }
-
-    // function addSigner(address _signer) external onlyOwner {
-    //     require(!isSigner[_signer], "Already a signer");
-    //     isSigner[_signer] = true;
-    //     emit SignerAdded(_signer);
-    // }
-
-    // function removeSigner(address _signer) external onlyOwner {
-    //     require(isSigner[_signer], "Not a signer");
-    //     isSigner[_signer] = false;
-    //     emit SignerRemoved(_signer);
-    // }
-
-    // function updateRequiredSignatures(uint256 _newCount) external onlyOwner {
-    //     require(_newCount > 0, "Must require at least 1 signature");
-    //     uint256 oldCount = requiredSignatures;
-    //     requiredSignatures = _newCount;
-    //     emit RequiredSignaturesUpdated(oldCount, _newCount);
-    // }
 }
