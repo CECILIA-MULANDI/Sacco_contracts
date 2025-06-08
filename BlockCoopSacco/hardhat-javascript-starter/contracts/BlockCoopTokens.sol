@@ -103,11 +103,6 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
     );
     event EmergencyUnpaused(address indexed unpauser);
 
-    /**
-     * @dev Emitted when a token is whitelisted
-     * @param tokenAddress The address of the whitelisted token
-     * @param priceFeed The address of the price feed for the token
-     */
     event TokenWhitelisted(
         address indexed tokenAddress,
         address indexed priceFeed
@@ -338,20 +333,6 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
         if (_isStable) {
             emit StablecoinAdded(_tokenAddress);
         }
-    }
-
-    function updatePriceFeed(
-        address _tokenAddress,
-        address _newPriceFeed
-    ) external onlyOwnerOrFundManager whenNotEmergencyPaused {
-        require(_tokenAddress != address(0), ERR_ZERO_ADDRESS);
-        TokenInfo storage tokenInfo = whiteListedTokens[_tokenAddress];
-        require(tokenInfo.isWhitelisted, ERR_TOKEN_NOT_WHITELISTED);
-
-        address oldPriceFeed = tokenInfo.priceFeed;
-        tokenInfo.priceFeed = _newPriceFeed;
-
-        emit PriceFeedUpdated(_tokenAddress, oldPriceFeed, _newPriceFeed);
     }
 
     function unWhitelistToken(
@@ -655,27 +636,6 @@ contract BlockCoopTokens is Ownable, ReentrancyGuard, Pausable {
 
         uint8 decimals = priceFeed.decimals();
         return uint256(price) * (10 ** (STANDARD_DECIMALS - decimals));
-    }
-
-    function _validatePriceFeed(
-        address _priceFeed
-    ) internal view returns (bool) {
-        if (_priceFeed == address(0)) return false;
-
-        try AggregatorV3Interface(_priceFeed).latestRoundData() returns (
-            uint80 roundId,
-            int256 price,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        ) {
-            if (price <= 0) return false;
-            if (block.timestamp - updatedAt > stalePriceThreshold) return false;
-            if (answeredInRound < roundId) return false;
-            return true;
-        } catch {
-            return false;
-        }
     }
 
     function getTokensInfo(

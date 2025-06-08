@@ -15,13 +15,13 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
     // Constants
     uint256 public constant MAX_LOAN_DURATION = 365 days;
     uint256 public constant MIN_LOAN_DURATION = 7 days;
-    uint256 public constant MAX_LTV_RATIO = 7000; // 70% LTV
+    uint256 public constant BASE_LTV = 8000; // 70% LTV
     uint256 public constant MAX_INTEREST_RATE = 5000; // 50%
     uint256 public constant SECONDS_PER_YEAR = 31536000;
     uint256 public constant BASIS_POINTS = 10000;
 
     // Liquidity provider incentives
-    uint256 public constant LP_REWARD_RATE = 300; // 3% annual yield for LPs
+    // uint256 public constant LP_REWARD_RATE = 300; // 3% annual yield for LPs
     uint256 public constant PROTOCOL_FEE = 100; // 1% protocol fee
 
     // Error messages
@@ -30,7 +30,6 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
     string constant ERR_INVALID_AMOUNT = "Invalid amount";
     string constant ERR_INSUFFICIENT_LIQUIDITY = "Insufficient pool liquidity";
     string constant ERR_LOAN_NOT_ACTIVE = "Loan not active";
-
     struct LoanRequest {
         address borrower;
         address loanToken;
@@ -42,7 +41,6 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         bool processed;
         uint256 timestamp;
     }
-
     struct Loan {
         address borrower;
         address loanToken;
@@ -56,37 +54,28 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         uint256 totalRepaid;
         uint256 id;
     }
-
-    // Enhanced Liquidity Pool Structure
     struct LiquidityPool {
-        uint256 totalLiquidity; // Total tokens in pool
-        uint256 availableLiquidity; // Available for loans
-        uint256 totalBorrowed; // Currently borrowed amount
-        uint256 totalLPShares; // Total liquidity provider shares
-        uint256 accumulatedFees; // Fees collected for LPs
-        uint256 lastUpdateTime; // Last fee update timestamp
-        bool isActive; // Pool status
+        uint256 totalLiquidity;
+        uint256 availableLiquidity;
+        uint256 totalBorrowed;
+        uint256 totalLPShares;
+        uint256 accumulatedFees;
+        uint256 lastUpdateTime;
+        bool isActive;
     }
-
-    // Liquidity Provider Position
     struct LPPosition {
         uint256 shares; // LP shares owned
         uint256 depositTime; // When position was created
         uint256 lastClaimTime; // Last reward claim time
     }
-
     BlockCoopTokens public saccoContract;
     uint256 public baseLoanInterestRate = 500; // 5%
     uint256 public loanCount = 0;
     uint256 public nextRequestId;
-
-    // Core mappings
     mapping(uint256 => Loan) public loans;
     mapping(uint256 => LoanRequest) public loanRequests;
     mapping(address => uint256[]) public userLoans;
     mapping(address => uint256[]) public userLoanRequests;
-
-    // Enhanced liquidity mappings
     mapping(address => LiquidityPool) public liquidityPools;
     mapping(address => mapping(address => LPPosition)) public lpPositions; // token => user => position
     mapping(address => bool) public supportedTokens;
@@ -95,7 +84,6 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
     address[] public supportedTokenList;
     uint256[] private pendingRequestIds;
 
-    // Events
     event LoanRequested(
         uint256 indexed requestId,
         address indexed borrower,
@@ -112,8 +100,6 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         uint256 debtRecovered,
         uint256 collateralValue
     );
-
-    // Liquidity events
     event LiquidityAdded(
         address indexed provider,
         address indexed token,
@@ -163,7 +149,7 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         require(pool.isActive, "Pool not active");
 
         // Update pool fees before changing liquidity
-        _updatePoolFees(_token);
+        // _updatePoolFees(_token);
 
         // Transfer tokens from user
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
@@ -193,11 +179,6 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         emit LiquidityAdded(msg.sender, _token, _amount, shares);
     }
 
-    /**
-     * @dev Remove liquidity from pool
-     * @param _token Token to remove liquidity from
-     * @param _shares Amount of shares to redeem
-     */
     function removeLiquidity(
         address _token,
         uint256 _shares
@@ -208,7 +189,7 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         require(position.shares >= _shares, "Insufficient shares");
 
         LiquidityPool storage pool = liquidityPools[_token];
-        _updatePoolFees(_token);
+        // _updatePoolFees(_token);
 
         // Calculate token amount to return
         uint256 tokenAmount = (_shares * pool.totalLiquidity) /
@@ -235,17 +216,13 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         emit LiquidityRemoved(msg.sender, _token, tokenAmount, _shares);
     }
 
-    /**
-     * @dev Claim accumulated rewards from providing liquidity
-     * @param _token Token pool to claim rewards from
-     */
     function claimRewards(
         address _token
     ) external nonReentrant onlySupportedToken(_token) {
         LPPosition storage position = lpPositions[_token][msg.sender];
         require(position.shares > 0, "No liquidity position");
 
-        _updatePoolFees(_token);
+        // _updatePoolFees(_token);
 
         uint256 rewards = _calculatePendingRewards(_token, msg.sender);
         if (rewards > 0) {
@@ -344,7 +321,7 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
             request.loanToken,
             request.loanAmount
         );
-        uint256 maxLoanValueUSD = (totalCollateralValueUSD * MAX_LTV_RATIO) /
+        uint256 maxLoanValueUSD = (totalCollateralValueUSD * BASE_LTV) /
             BASIS_POINTS;
         require(
             loanValueUSD <= maxLoanValueUSD,
@@ -655,7 +632,7 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         pool.availableLiquidity += principalPortion; // Principal goes back to available liquidity
         pool.accumulatedFees +=
             (interestPortion * (BASIS_POINTS - PROTOCOL_FEE)) /
-            BASIS_POINTS; // Most interest goes to LPs
+            BASIS_POINTS;
 
         if (interestPortion > 0) {
             pool.totalBorrowed -= principalPortion;
@@ -708,18 +685,14 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
 
     // ============ INTERNAL FUNCTIONS ============
 
-    function _updatePoolFees(address _token) internal {
-        LiquidityPool storage pool = liquidityPools[_token];
-        uint256 timeElapsed = block.timestamp - pool.lastUpdateTime;
+    // function _updatePoolFees(address _token) internal {
+    //     LiquidityPool storage pool = liquidityPools[_token];
+    //     uint256 timeElapsed = block.timestamp - pool.lastUpdateTime;
 
-        if (timeElapsed > 0 && pool.totalBorrowed > 0) {
-            // Calculate fees from active loans
-            uint256 fees = (pool.totalBorrowed * LP_REWARD_RATE * timeElapsed) /
-                (SECONDS_PER_YEAR * BASIS_POINTS);
-            pool.accumulatedFees += fees;
-            pool.lastUpdateTime = block.timestamp;
-        }
-    }
+    //     if (timeElapsed > 0 && pool.totalBorrowed > 0) {
+    //         pool.lastUpdateTime = block.timestamp;
+    //     }
+    // }
 
     function _calculatePendingRewards(
         address _token,
