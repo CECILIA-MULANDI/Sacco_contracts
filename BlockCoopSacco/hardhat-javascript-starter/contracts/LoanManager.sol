@@ -15,7 +15,7 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
     // Constants
     uint256 public constant MAX_LOAN_DURATION = 365 days;
     uint256 public constant MIN_LOAN_DURATION = 7 days;
-    uint256 public constant BASE_LTV = 8000; // 70% LTV
+    uint256 public constant BASE_LTV = 8000;
     uint256 public constant MAX_INTEREST_RATE = 5000; // 50%
     uint256 public constant SECONDS_PER_YEAR = 31536000;
     uint256 public constant BASIS_POINTS = 10000;
@@ -79,8 +79,14 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
     mapping(address => LiquidityPool) public liquidityPools;
     mapping(address => mapping(address => LPPosition)) public lpPositions; // token => user => position
     mapping(address => bool) public supportedTokens;
-    mapping(address => address[]) public userLPTokens; // Track user's LP positions
-
+    mapping(address => address[]) public userLPTokens;
+    mapping(address => uint256[]) public tokenHistory;
+    mapping(address => uint256[]) public priceTimestamps;
+    mapping(address => uint256) public lastPriceUpdate;
+    uint256 public constant PRICE_UPDATE_INTERVAL = 1 hours;
+    uint256 public constant VOLATILITY_WINDOW = 7 days;
+    // 7days * 24 hours
+    uint256 public constant MAX_PRICE_POINTS = 168;
     address[] public supportedTokenList;
     uint256[] private pendingRequestIds;
 
@@ -237,7 +243,137 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
         }
     }
 
-    // ============ LOAN MANAGEMENT ============
+    // ==========VOLATILITY MANAGEMENT==========
+    function recordTokenPrice(
+        address _token
+    ) external onlySupportedToken(_token) {
+        require(
+            block.timestamp >= lastPriceUpdate[_token] + PRICE_UPDATE_INTERVAL,
+            "Price update done too recently"
+        );
+        uint256 currentPrice = saccoContract.getTokenPrice(_token);
+        require(currentPrice > 0, "Invalid token price");
+        tokenHistory[_token].push(currentPrice);
+        priceTimestamps[_token].push(block.timestamp);
+        lastPriceUpdate[_token] = block.timestamp;
+        _cleanOldPriceData(_token);
+    }
+
+    function _cleanOldPriceData(address _token) internal {
+        uint256[] storage prices = tokenHistory[_token];
+        uint256[] storage timestamps = priceTimestamps[_token];
+        uint256 cutOffTime = block.timestamp - VOLATILITY_WINDOW;
+        uint256 startIndex = 0;
+
+        for (uint256 i = 0; i < timestamps.length; i++) {
+            if (timestamps[i] >= cutOffTime) {
+                startIndex = i;
+                break;
+            }
+        }
+
+        if (startIndex > 0) {
+            for (uint256 i = startIndex; i < timestamps.length; i++) {
+                prices[i - startIndex] = prices[i];
+                timestamps[i - startIndex] = timestamps[i];
+            }
+            for (uint256 i = 0; i < startIndex; i++) {
+                prices.pop();
+                timestamps.pop();
+            }
+        }
+    }
+
+    function getWeeklyVolatilityPercentage(
+        address _token
+    ) public view returns (uint256) {
+        uint256[] storage prices = tokenHistory[_token];
+
+        if (prices.length < 2) {
+            return 0;
+        }
+
+        // Calculate returns (price changes)
+        uint256[] memory priceReturns = new uint256[](prices.length - 1);
+        bool[] memory isPositive = new bool[](prices.length - 1);
+
+        for (uint256 i = 1; i < prices.length; i++) {
+            uint256 prevPrice = prices[i - 1];
+            uint256 currPrice = prices[i];
+
+            if (prevPrice == 0) continue;
+
+            if (currPrice >= prevPrice) {
+                priceReturns[i - 1] =
+                    ((currPrice - prevPrice) * 1e18) /
+                    prevPrice;
+                isPositive[i - 1] = true;
+            } else {
+                priceReturns[i - 1] =
+                    ((prevPrice - currPrice) * 1e18) /
+                    prevPrice;
+                isPositive[i - 1] = false;
+            }
+        }
+
+        // Calculate mean return
+        int256 signedSum = 0;
+        uint256 validReturns = 0;
+
+        for (uint256 i = 0; i < priceReturns.length; i++) {
+            if (priceReturns[i] > 0) {
+                validReturns++;
+                if (isPositive[i]) {
+                    signedSum += int256(priceReturns[i]);
+                } else {
+                    signedSum -= int256(priceReturns[i]);
+                }
+            }
+        }
+
+        if (validReturns == 0) return 0;
+
+        int256 meanReturn = signedSum / int256(validReturns);
+
+        // Calculate variance
+        uint256 sumSquaredDeviations = 0;
+
+        for (uint256 i = 0; i < priceReturns.length; i++) {
+            if (priceReturns[i] > 0) {
+                int256 deviation;
+                if (isPositive[i]) {
+                    deviation = int256(priceReturns[i]) - meanReturn;
+                } else {
+                    deviation = -int256(priceReturns[i]) - meanReturn;
+                }
+
+                uint256 squaredDeviation = uint256(
+                    deviation >= 0
+                        ? deviation * deviation
+                        : (-deviation) * (-deviation)
+                );
+                sumSquaredDeviations += squaredDeviation / 1e18; // Scale down
+            }
+        }
+
+        uint256 variance = sumSquaredDeviations / validReturns;
+        uint256 standardDeviation = sqrt(variance);
+
+        // Convert to percentage (basis points)
+        return (standardDeviation * BASIS_POINTS) / 1e18;
+    }
+
+    // Add this helper function to your contract:
+    function sqrt(uint256 x) internal pure returns (uint256) {
+        if (x == 0) return 0;
+        uint256 z = (x + 1) / 2;
+        uint256 y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
+        return y;
+    } // ============ LOAN MANAGEMENT ============
 
     function requestLoan(
         address _loanToken,
@@ -504,19 +640,19 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
 
         uint256[4] memory amounts = [
             debtRepayment,
-            (collateralAmount * 200) / BASIS_POINTS, // 2% protocol fee
+            (collateralAmount * 100) / BASIS_POINTS, // 2% protocol fee
             (collateralAmount * 300) / BASIS_POINTS, // 3% liquidator reward
             collateralAmount -
                 debtRepayment -
                 (collateralAmount * 500) /
-                BASIS_POINTS // Return to borrower
+                BASIS_POINTS
         ];
 
         address[4] memory recipients = [
-            address(this), // For debt repayment
-            owner(), // Protocol fee
-            msg.sender, // Liquidator reward
-            loan.borrower // Return to borrower
+            address(this),
+            owner(),
+            msg.sender,
+            loan.borrower
         ];
 
         // Convert to dynamic arrays for function call
@@ -629,11 +765,16 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
 
         // Update pool liquidity
         LiquidityPool storage pool = liquidityPools[loan.loanToken];
-        pool.availableLiquidity += principalPortion; // Principal goes back to available liquidity
+        pool.availableLiquidity += principalPortion;
+        uint256 protocolFee = (interestPortion * PROTOCOL_FEE) / BASIS_POINTS;
+        uint256 lpfees = interestPortion - protocolFee;
+        pool.accumulatedFees += lpfees;
         pool.accumulatedFees +=
             (interestPortion * (BASIS_POINTS - PROTOCOL_FEE)) /
             BASIS_POINTS;
-
+        if (protocolFee > 0) {
+            IERC20(loan.loanToken).safeTransfer(owner(), protocolFee);
+        }
         if (interestPortion > 0) {
             pool.totalBorrowed -= principalPortion;
         }
@@ -705,12 +846,22 @@ contract LoanManager is Ownable, ReentrancyGuard, Pausable {
             return 0;
         }
 
+        // Calculate user's share of fees since last claim
         uint256 userShare = (position.shares * BASIS_POINTS) /
             pool.totalLPShares;
-        uint256 timeElapsed = block.timestamp - position.lastClaimTime;
+        uint256 totalPendingFees = pool.accumulatedFees;
 
-        // Calculate rewards based on user's share of accumulated fees
-        return (pool.accumulatedFees * userShare) / BASIS_POINTS;
+        // Only give them a portion based on time since last claim
+        uint256 timeElapsed = block.timestamp - position.lastClaimTime;
+        uint256 maxTimeForRewards = 30 days; // Adjust as needed
+
+        uint256 timeWeight = timeElapsed > maxTimeForRewards
+            ? BASIS_POINTS
+            : (timeElapsed * BASIS_POINTS) / maxTimeForRewards;
+
+        return
+            (totalPendingFees * userShare * timeWeight) /
+            (BASIS_POINTS * BASIS_POINTS);
     }
 
     function _removeTokenFromUserList(address _user, address _token) internal {
