@@ -32,45 +32,7 @@ The project consists of three main components:
 - Yarn or npm
 - MetaMask or compatible Web3 wallet
 
-### Installation
 
-1. **Clone the repository**
-
-   ```bash
-   git clone <repository-url>
-   cd modified_BlockSacco
-   ```
-
-2. **Install Smart Contract Dependencies**
-
-   ```bash
-   cd BlockCoopSacco/hardhat-javascript-starter
-   npm install
-   ```
-
-3. **Install Frontend Dependencies**
-   ```bash
-   cd ../blocksacco_frontend
-   npm install
-   ```
-
-### Environment Setup
-
-1. **Smart Contract Environment**
-
-   ```bash
-   cd BlockCoopSacco/hardhat-javascript-starter
-   cp .env.example .env
-   # Add your private key and other required variables
-   ```
-
-2. **Frontend Environment**
-   ```bash
-   cd BlockCoopSacco/blocksacco_frontend
-   cp .env.example .env
-   # Add your Thirdweb client ID
-   VITE_TEMPLATE_CLIENT_ID=your_thirdweb_client_id
-   ```
 
 ### Development
 
